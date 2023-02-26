@@ -1,0 +1,2 @@
+schema:
+  input: ./schema/**/*.graphqls

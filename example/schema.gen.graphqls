@@ -1,0 +1,23 @@
+type Query {
+  "Returns the current authenticated user."
+  caller: User
+  "Returns a user by ID, if they exist and the caller has access to it."
+  user(id: ID!): User
+  "Returns all users that the caller has access to."
+  users: UserConnection @connection(for: "User")
+}
+
+scalar Email @map(to: "string")
+
+type User {
+  "Unique identifier for the record."
+  id: ObjectID!
+  "Date and time the record was created."
+  createdAt: DateTime!
+  "Date and time the record was last updated."
+  updatedAt: DateTime!
+  "Email address of the user."
+  email: Email!
+  "Full name of the user."
+  name: String!
+}

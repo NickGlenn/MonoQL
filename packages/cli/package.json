@@ -1,0 +1,27 @@
+{
+  "name": "@moniql/cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "bin": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "glob": "^8.1.0",
+    "graphql": "^16.6.0",
+    "ts-morph": "^17.0.1",
+    "yaml": "^2.2.1",
+    "yargs": "^17.7.1",
+    "zod": "^3.20.6"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/node": "^18.14.1",
+    "@types/yargs": "^17.0.22"
+  }
+}

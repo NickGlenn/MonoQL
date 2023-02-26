@@ -1,0 +1,19 @@
+scalar Email @map(to: "string")
+
+type User @doc {
+    "Email address of the user."
+    email: Email! @unique
+    "Password for the user account. This is hidden from clients."
+    password: String! @secret
+    "Full name of the user."
+    name: String! @computed
+}
+
+extend type Query {
+    "Returns the current authenticated user."
+    caller: User
+    "Returns a user by ID, if they exist and the caller has access to it."
+    user(id: ID!): User
+    "Returns all users that the caller has access to."
+    users: UserConnection @connection(for: "User")
+}

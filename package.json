@@ -1,0 +1,35 @@
+{
+  "name": "moniql",
+  "version": "1.0.0",
+  "description": "A GraphQL MongoDB server generator.",
+  "main": "index.js",
+  "scripts": {
+    "build": "lerna run build",
+    "demo": "ts-node packages/cli/src/index.ts --config example/moniql.yml",
+    "test": "lerna run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nickglenn/moniql.git"
+  },
+  "keywords": [
+    "graphql",
+    "mongo",
+    "mongodb",
+    "generative"
+  ],
+  "author": "Nick Glenn <nick@catalystsoftworks.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nickglenn/moniql/issues"
+  },
+  "homepage": "https://github.com/nickglenn/moniql#readme",
+  "devDependencies": {
+    "lerna": "^6.5.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.5"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
