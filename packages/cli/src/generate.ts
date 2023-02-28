@@ -1,4 +1,4 @@
-import { DocumentNode, Kind, ObjectTypeDefinitionNode, print, TypeNode } from "graphql";
+import { DocumentNode, EnumTypeDefinitionNode, InterfaceTypeDefinitionNode, Kind, ObjectTypeDefinitionNode, print, TypeNode, UnionTypeDefinitionNode } from "graphql";
 import { Project, InterfaceDeclaration, SourceFile, PropertySignature, FunctionDeclaration, VariableDeclarationKind } from "ts-morph";
 import type { Mutable } from "./parser";
 
@@ -32,6 +32,16 @@ export class Generator {
 
     /** The CollectionsMap type. */
     private dbCollectionsMapType: InterfaceDeclaration;
+
+    /** Contains metadata specific to database equivalents of GraphQL types. */
+    private dbTypeInfo: Record<string, {
+        /** The name of the database collection. */
+        collectionName: string;
+        /** The fields that are indexed in the database. */
+        indexedFields: string[];
+        /** Unique fields in the database. */
+        uniqueFields: string[];
+    }> = {};
 
     constructor(
         /** The AST of the GraphQL schema. */
@@ -109,8 +119,17 @@ export class Generator {
         // begin visiting the AST
         for (const definition of ast.definitions) {
             switch (definition.kind) {
-                case "ObjectTypeDefinition":
+                case Kind.OBJECT_TYPE_DEFINITION:
                     this.processObjectType(definition);
+                    break;
+                case Kind.INTERFACE_TYPE_DEFINITION:
+                    this.processInterfaceType(definition);
+                    break;
+                case Kind.ENUM_TYPE_DEFINITION:
+                    this.processEnumType(definition);
+                    break;
+                case Kind.UNION_TYPE_DEFINITION:
+                    this.processUnionType(definition);
                     break;
             }
         }
@@ -177,15 +196,31 @@ export class Generator {
     private processObjectType(obj: Mutable<ObjectTypeDefinitionNode>) {
         const { tsFile: ts, dbCollectionsMapType, dbCollectionsMethod } = this;
 
-        let dboInterface: undefined | InterfaceDeclaration;
-        obj.directives = obj.directives || [];
-
         let collection = "";
+
+        const objectInterface = ts.addInterface({
+            docs: [obj.description?.value || ""],
+            name: obj.name.value,
+            isExported: true,
+        });
+        objectInterface.addProperty({
+            name: "__typename",
+            type: `"${obj.name.value}"`,
+            hasQuestionToken: true,
+        });
 
         // create a resolver interface for the object type
         const resolverInterface = ts.addInterface({
             docs: [`Resolver for the ${obj.name.value} object type.`],
             name: `${obj.name.value}Resolver`,
+            isExported: true,
+        });
+
+        // create a "wrapped" resolver interface that only includes the fields that are
+        // meant to be implemented by the user
+        const wrappedResolverInterface = ts.addInterface({
+            docs: [`Wrapped resolver for the ${obj.name.value} object type.`],
+            name: `${obj.name.value}WrappedResolver`,
             isExported: true,
         });
 
@@ -202,65 +237,43 @@ export class Generator {
             }],
         });
 
+        // extend each interface that the type implements
+        for (const iface of obj.interfaces ?? []) {
+            const ifaceName = iface.name.value;
+            objectInterface.addExtends(ifaceName);
+        }
+
         // TODO: create a default resolver for the object type
 
         // process the directives on the object type
-        const docDirectiveIndex = obj.directives.findIndex((dir) => dir.name.value === "doc");
-        if (docDirectiveIndex !== -1) {
-            const docDir = obj.directives[docDirectiveIndex];
+        for (const dir of obj.directives ?? []) {
+            switch (dir.name.value) {
+                case "dbo": {
+                    // the @dbo directive is used to create a MongoDB collection for the object type
+                    const colArg = dir.arguments?.find((arg) => arg.name?.value === "col");
+                    const collectionName = colArg?.value.kind === "StringValue" ? colArg.value.value : camelCase(obj.name.value);
 
-            // get the DBO namespace from the TS file and create it if it doesn't exist
-            dboInterface = ts.addInterface({
-                docs: [obj.description?.value || ""],
-                name: obj.name.value,
-                isExported: true,
-            });
+                    this.dbTypeInfo[obj.name.value] = {
+                        collectionName: collectionName,
+                        indexedFields: [],
+                        uniqueFields: [],
+                    };
 
-            // does the doc directive have a collection argument?
-            const collectionArg = docDir.arguments?.find((arg) => arg.name?.value === "col");
-            if (collectionArg) {
-                if (collectionArg.value.kind !== "StringValue") {
-                    throw new Error(`The @doc directive on the ${obj.name.value} object type has an invalid collection argument.`);
+                    // TODO: move this to a database step
+                    // // add the collection to the CollectionsMap type
+                    // dbCollectionsMapType.addProperty({
+                    //     docs: [`Collection of ${obj.name.value} records.`],
+                    //     name: camelCase(obj.name.value),
+                    //     type: `Collection<${obj.name.value}>`,
+                    // });
+
+                    // // add the collection initialization to the getDbCollections method
+                    // dbCollectionsMethod.addStatements([
+                    //     `collections.${camelCase(obj.name.value)} = db.collection("${collection}");`,
+                    // ]);
+                    break;
                 }
-
-                collection = collectionArg.value.value;
-            } else {
-                collection = camelCase(obj.name.value);
             }
-
-            // add the collection to the CollectionsMap type
-            dbCollectionsMapType.addProperty({
-                docs: [`Collection of ${obj.name.value} records.`],
-                name: camelCase(obj.name.value),
-                type: `Collection<${obj.name.value}>`,
-            });
-
-            // add the collection initialization to the getDbCollections method
-            dbCollectionsMethod.addStatements([
-                `collections.${camelCase(obj.name.value)} = db.collection("${collection}");`,
-            ]);
-
-            // add doc fields (id, createdAt, updatedAt) to GraphQL schema
-            obj.fields = obj.fields || [];
-            obj.fields.unshift({
-                kind: Kind.FIELD_DEFINITION,
-                description: { kind: Kind.STRING, value: "Unique identifier for the record." },
-                name: { kind: Kind.NAME, value: "id" },
-                type: notNullNamedType("ObjectID"),
-            }, {
-                kind: Kind.FIELD_DEFINITION,
-                description: { kind: Kind.STRING, value: "Date and time the record was created." },
-                name: { kind: Kind.NAME, value: "createdAt" },
-                type: notNullNamedType("DateTime"),
-            }, {
-                kind: Kind.FIELD_DEFINITION,
-                description: { kind: Kind.STRING, value: "Date and time the record was last updated." },
-                name: { kind: Kind.NAME, value: "updatedAt" },
-                type: notNullNamedType("DateTime"),
-            });
-
-            // strip the @doc directive from the object type
-            obj.directives.splice(docDirectiveIndex, 1);
         }
 
         // process the fields on the object type
@@ -270,15 +283,35 @@ export class Generator {
             field.directives = field.directives || [];
 
             // create a DBO interface property for the field
-            let dboProperty: undefined | PropertySignature;
-            if (dboInterface) {
-                dboProperty = dboInterface.addProperty({
-                    docs: [field.description?.value || ""],
-                    name: field.name.value,
-                    type: this.getTsType(field.type),
-                    hasQuestionToken: field.type.kind !== Kind.NON_NULL_TYPE,
+            let propertyDef: null | PropertySignature = objectInterface.addProperty({
+                docs: [field.description?.value || ""],
+                name: field.name.value,
+                type: this.getTsType(field.type),
+                hasQuestionToken: field.type.kind !== Kind.NON_NULL_TYPE,
+            });
+
+            // create an interface for the arguments of the field
+            const fieldResolverArgs = ts.addInterface({
+                docs: [`Arguments for the ${obj.name.value}.${field.name.value} resolver.`],
+                name: `${obj.name.value}_${pascalCase(field.name.value)}_Args`,
+                isExported: true,
+            });
+
+            for (const arg of (field.arguments || [])) {
+                fieldResolverArgs.addProperty({
+                    docs: [arg.description?.value || ""],
+                    name: arg.name?.value || "",
+                    type: this.getTsType(arg.type),
                 });
             }
+
+            // add the field to the resolver interface - this is the "raw" resolver
+            const fieldResolver = resolverInterface.addProperty({
+                docs: [field.description?.value || ""],
+                name: field.name.value,
+                type: `ResolverFn<${obj.name.value}, ${fieldResolverArgs.getName()}, ${this.getTsType(field.type)}>`,
+                hasQuestionToken: true,
+            });
 
             for (let j = field.directives.length - 1; j >= 0; j--) {
                 const dir = field.directives[j];
@@ -292,36 +325,25 @@ export class Generator {
                     case "computed": {
                         // if the field has the @computed directive, then we'll remove it from the property
                         // on the DBO interface and add a resolver method to the resolver interface
-                        dboProperty?.remove();
+                        propertyDef?.remove();
+                        propertyDef = null;
 
-                        // TODO: get the arguments and build a type for them
-                        const params = ts.addInterface({
-                            name: `${obj.name.value}${pascalCase(field.name.value)}Args`,
-                            isExported: true,
-                        });
-
-                        for (const arg of (field.arguments || [])) {
-                            params.addProperty({
-                                docs: [arg.description?.value || ""],
-                                name: arg.name?.value || "",
-                                type: this.getTsType(arg.type),
-                            });
-                        }
-
-                        const returnType = this.getTsType(field.type);
-
-                        resolverInterface.addProperty({
+                        wrappedResolverInterface.addProperty({
                             name: field.name.value,
-                            type: `ResolverFn<${obj.name.value}, any, ${returnType}>`,
+                            type: `${resolverInterface.getName()}["${fieldResolver.getName()}"]`,
                         });
                         break;
                     }
                     case "unique":
-                        // if the field has the @unique directive, then we'll add a unique index to the
-                        // MongoDB collection for the record type via ensureIndex
-                        dbCollectionsMethod.addStatements([
-                            `await collections.${camelCase(obj.name.value)}.ensureIndex({ ${field.name.value}: 1 }, { unique: true });`,
-                        ]);
+                        if (collection) {
+                            // if the field has the @unique directive, then we'll add a unique index to the
+                            // MongoDB collection for the record type via ensureIndex
+                            dbCollectionsMethod.addStatements([
+                                `await collections.${camelCase(obj.name.value)}.ensureIndex({ ${field.name.value}: 1 }, { unique: true });`,
+                            ]);
+                        } else {
+                            console.warn(`The @unique directive can only be used on fields of types that have the @doc directive.`);
+                        }
                         break;
                     default:
                         removeDirective = false;
@@ -331,22 +353,64 @@ export class Generator {
                     field.directives.splice(j, 1);
                 }
             }
-
-            // process the directives on the field
-            const hasDocDirective = field.directives?.some((dir) => dir.name.value === "doc");
-            if (hasDocDirective) {
-                // if the field has the @doc directive, then we'll add it to the DBO interface
-                if (dboInterface) {
-                    dboInterface.addProperty({
-                        name: field.name.value,
-                        type: "any",
-                    });
-                }
-
-                // remove the field from the object type
-                obj.fields.splice(i, 1);
-            }
         }
+    }
+
+    /**
+     * Processes the given GraphQL interface type.
+     */
+    private processInterfaceType(obj: Mutable<InterfaceTypeDefinitionNode>) {
+        const iface = this.tsFile.addInterface({
+            docs: [obj.description?.value || ""],
+            name: obj.name.value,
+            isExported: true,
+        });
+
+        // process the fields on the interface type
+        obj.fields = obj.fields || [];
+
+        for (const field of obj.fields) {
+            iface.addProperty({
+                docs: [field.description?.value || ""],
+                name: field.name.value,
+                type: this.getTsType(field.type),
+            });
+        }
+    }
+
+    /**
+     * Processes the given GraphQL enum type.
+     */
+    private processEnumType(obj: Mutable<EnumTypeDefinitionNode>) {
+        const enumDef = this.tsFile.addEnum({
+            docs: [obj.description?.value || ""],
+            name: obj.name.value,
+            isExported: true,
+        });
+
+        // process the fields on the enum type
+        obj.values = obj.values || [];
+
+        for (const field of obj.values) {
+            enumDef.addMember({
+                docs: [field.description?.value || ""],
+                name: field.name.value,
+            });
+        }
+    }
+
+    /**
+     * Processes the given GraphQL union type.
+     */
+    private processUnionType(obj: Mutable<UnionTypeDefinitionNode>) {
+        const result = obj.types?.map((type) => type.name.value).join(" | ") || "";
+
+        const unionDef = this.tsFile.addTypeAlias({
+            docs: [obj.description?.value || ""],
+            name: obj.name.value,
+            isExported: true,
+            type: result,
+        });
     }
 
     /**

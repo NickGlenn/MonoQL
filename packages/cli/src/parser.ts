@@ -2,7 +2,6 @@ import { readFileSync } from "fs";
 import glob from "glob";
 import type { DocumentNode } from "graphql";
 import { parse } from "graphql";
-import { preprocessAstForGeneration } from "./process";
 
 /**
  * Parses the GraphQL schema definitions and performs pre-processing. This is where we
@@ -23,11 +22,7 @@ export function parseSchema(dir: string, schemaFiles: string) {
     }
 
     // parse the schema
-    const ast = parse(schema) as Mutable<DocumentNode>;
-
-    preprocessAstForGeneration(ast);
-
-    return ast as Mutable<DocumentNode>;
+    return parse(schema) as Mutable<DocumentNode>;
 }
 
 // recursively removes all readonly modifiers from the given type

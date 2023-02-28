@@ -1,3 +1,55 @@
+interface Creature {
+  species: String!
+}
+
+type Dog implements Creature {
+  name: String!
+  breed: DogBreed
+  species: String!
+}
+
+enum DogBreed {
+  "A small dog breed."
+  SMALL
+  "A medium dog breed."
+  MEDIUM
+  "A large dog breed."
+  LARGE
+}
+
+type Cat implements Creature {
+  name: String!
+  species: String!
+}
+
+union Animal = Dog | Cat
+
+scalar Email @map(to: "string")
+
+interface Node {
+  "The globally unique identifier for the node."
+  id: ID!
+  "The date/time when the node was created."
+  createdAt: DateTime!
+  "The date/time when the node was last updated."
+  updatedAt: DateTime!
+}
+
+type User implements Node {
+  "Email address of the user."
+  email: Email! @unique
+  "Password for the user account. This is hidden from clients."
+  password: String! @secret
+  "Full name of the user."
+  name: String! @computed
+  "The globally unique identifier for the node."
+  id: ID!
+  "The date/time when the node was created."
+  createdAt: DateTime!
+  "The date/time when the node was last updated."
+  updatedAt: DateTime!
+}
+
 type Query {
   "Returns the current authenticated user."
   caller: User
@@ -5,19 +57,4 @@ type Query {
   user(id: ID!): User
   "Returns all users that the caller has access to."
   users: UserConnection @connection(for: "User")
-}
-
-scalar Email @map(to: "string")
-
-type User {
-  "Unique identifier for the record."
-  id: ObjectID!
-  "Date and time the record was created."
-  createdAt: DateTime!
-  "Date and time the record was last updated."
-  updatedAt: DateTime!
-  "Email address of the user."
-  email: Email!
-  "Full name of the user."
-  name: String!
 }

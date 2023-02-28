@@ -1,2 +1,2 @@
-schema:
-  input: ./schema/**/*.graphqls
+schema: ./schema/**/*.graphqls
+outputFinalSchema: ./schema.gen.graphqls

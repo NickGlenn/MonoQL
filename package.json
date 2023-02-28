@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "lerna run build",
-    "demo": "ts-node packages/cli/src/index.ts --config example/moniql.yml",
+    "demo": "ts-node packages/cli/src/bin.ts --config example/moniql.yml",
     "test": "lerna run test"
   },
   "repository": {

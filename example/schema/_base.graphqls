@@ -1,5 +1,25 @@
-type Query
+# interface testing
 
-# type Mutation {
+interface Creature {
+  species: String!
+}
 
-# }
+type Dog implements Creature {
+  name: String!
+  breed: DogBreed
+}
+
+enum DogBreed {
+  "A small dog breed."
+  SMALL
+  "A medium dog breed."
+  MEDIUM
+  "A large dog breed."
+  LARGE
+}
+
+type Cat implements Creature {
+  name: String!
+}
+
+union Animal = Dog | Cat
