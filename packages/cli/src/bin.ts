@@ -9,14 +9,16 @@ import Listr from "listr";
 import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
 import { DocumentNode, print } from "graphql";
 import { flattenExtensionTypes, implementMissingBaseDeclarations, implementMissingInterfaceFields } from "./process";
-import { CliConfig, configSchema } from "./config";
+import { validate } from "json-schema";
 import { writeFile } from "fs/promises";
+import { Config, mergeObjects } from "./config";
+import getDefaults from "json-schema-defaults";
 
 export interface PipelineContext {
     /** Directory of the configuration file. */
     configDir: string;
     /** The configuration file. */
-    config: CliConfig;
+    config: Config;
     /** The parsed schema AST. */
     ast: Mutable<DocumentNode>;
 };
@@ -70,14 +72,16 @@ const tasks = new Listr<PipelineContext>([
             const configDir = path.dirname(configResult.filepath ?? ".");
 
             // validate the configuration file
-            const result = configSchema.safeParse(configResult.config);
-            if (!result.success) {
-                throw new Error(result.error.toString());
+            const configSchema = require("../schema.json");
+            const defaultConfig = getDefaults(configSchema);
+            const config = mergeObjects(defaultConfig, configResult.config);
+            const res = validate(config, configSchema);
+
+            if (!res.valid) {
+                throw new Error(res.errors[0].message);
             }
 
-            const config = result.data;
-
-            ctx.config = config;
+            ctx.config = configResult.config;
             ctx.configDir = configDir;
 
             return configResult.filepath;
@@ -90,15 +94,15 @@ const tasks = new Listr<PipelineContext>([
         },
     }, {
         title: "Implementing missing base definitions",
-        skip: (ctx) => !ctx.config.implementMissingBaseDefinitions,
+        skip: (ctx) => !ctx.config.preprocess?.implementMissingBaseDefinitions,
         task: (ctx) => implementMissingBaseDeclarations(ctx.ast),
     }, {
         title: "Flattening extension types",
-        skip: (ctx) => !ctx.config.flattenExtensionTypes,
+        skip: (ctx) => !ctx.config.preprocess?.flattenExtensionTypes,
         task: (ctx) => flattenExtensionTypes(ctx.ast),
     }, {
         title: "Implementing missing interface fields",
-        skip: (ctx) => !ctx.config.implementMissingInterfaceFields,
+        skip: (ctx) => !ctx.config.preprocess?.implementMissingInterfaceFields,
         task: (ctx) => implementMissingInterfaceFields(ctx.ast),
     }, {
         title: "Executing pipeline",
@@ -133,12 +137,12 @@ const tasks = new Listr<PipelineContext>([
         },
     }, {
         title: "Exporting final schema",
-        skip: (ctx) => !ctx.config.outputFinalSchema,
+        skip: (ctx) => !ctx.config.preprocess?.outputFile,
         task: async (ctx) => {
             // make the path relative to the config file unless it's an absolute path
-            const outputPath = path.isAbsolute(ctx.config.outputFinalSchema!)
-                ? ctx.config.outputFinalSchema!
-                : path.join(ctx.configDir, ctx.config.outputFinalSchema!);
+            const outputPath = path.isAbsolute(ctx.config.preprocess?.outputFile!)
+                ? ctx.config.preprocess?.outputFile!
+                : path.join(ctx.configDir, ctx.config.preprocess?.outputFile!);
 
             await writeFile(outputPath, print(ctx.ast as DocumentNode));
         },

@@ -1,0 +1,88 @@
+{
+    "$ref": "#/definitions/Config",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "Config": {
+            "description": "Configuration for a Moniql project.",
+            "properties": {
+                "preprocess": {
+                    "description": "Schema pre-processing settings.",
+                    "properties": {
+                        "flattenExtensionTypes": {
+                            "default": true,
+                            "description": "Flattens all extension types down into a single type definition.",
+                            "type": "boolean"
+                        },
+                        "implementMissingBaseDefinitions": {
+                            "default": true,
+                            "description": "Implement missing base definitions for extended types. This allows types to\nbe defined in a distributed manner across multiple files.",
+                            "type": "boolean"
+                        },
+                        "implementMissingInterfaceFields": {
+                            "default": true,
+                            "description": "Implement missing interface fields for types that implement an interface.",
+                            "type": "boolean"
+                        },
+                        "outputFile": {
+                            "default": "./schema.gen.graphqls",
+                            "description": "Output the final GraphQL schema after pre-processing to the specified\nfile path (relative to the config file).",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "flattenExtensionTypes",
+                        "implementMissingBaseDefinitions",
+                        "implementMissingInterfaceFields"
+                    ],
+                    "type": "object"
+                },
+                "resolvers": {
+                    "description": "Settings for resolver generation.",
+                    "properties": {
+                        "format": {
+                            "default": "file",
+                            "description": "Determines how resolvers are output by default.",
+                            "enum": [
+                                "directory",
+                                "file",
+                                "none"
+                            ],
+                            "type": "string"
+                        },
+                        "outputDir": {
+                            "description": "The directory to output resolver files to.",
+                            "type": "string"
+                        },
+                        "overrides": {
+                            "additionalProperties": {
+                                "enum": [
+                                    "directory",
+                                    "file",
+                                    "none"
+                                ],
+                                "type": "string"
+                            },
+                            "default": "{ Query: \"directory\", Mutation: \"directory\" }",
+                            "description": "Overrides the default resolver format for specific types.",
+                            "type": "object"
+                        }
+                    },
+                    "required": [
+                        "outputDir"
+                    ],
+                    "type": "object"
+                },
+                "schema": {
+                    "description": "The path to the schema file(s).",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "resolvers",
+                "schema"
+            ],
+            "type": "object"
+        }
+    }
+}
+

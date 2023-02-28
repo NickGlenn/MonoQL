@@ -50,6 +50,11 @@ type User implements Node {
   updatedAt: DateTime!
 }
 
+type Mutation {
+  "Creates a new user."
+  createAccount(email: Email!, password: String!): Boolean!
+}
+
 type Query {
   "Returns the current authenticated user."
   caller: User
