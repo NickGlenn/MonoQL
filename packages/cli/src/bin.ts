@@ -13,6 +13,7 @@ import { writeFile } from "fs/promises";
 import { Config, mergeObjects } from "./config";
 import { createConnectionTypes } from "./createConnectionTypes";
 import { createResolverTypes } from "./createResolverTypes";
+import { scaffoldResolvers } from "./scaffoldResolvers";
 
 export interface PipelineContext {
     /** Directory of the configuration file. */
@@ -112,6 +113,9 @@ const tasks = new Listr<PipelineContext>([
     }, {
         title: "Generating server-side resolver types",
         task: (ctx) => createResolverTypes(ctx.ast, ctx.config, ctx.configDir),
+    }, {
+        title: "Scaffolding resolvers",
+        task: (ctx) => scaffoldResolvers(ctx.ast, ctx.config, ctx.configDir),
     }, {
         title: "Exporting final schema",
         skip: (ctx) => ctx.config.preprocess?.outputFile === false,

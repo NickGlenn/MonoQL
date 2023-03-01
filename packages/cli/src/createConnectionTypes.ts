@@ -122,42 +122,44 @@ export function createConnectionTypes(ast: Mutable<DocumentNode>, config: Config
                     description: { kind: Kind.STRING, value: "Information to aid in pagination." },
                     kind: Kind.FIELD_DEFINITION,
                     name: { kind: Kind.NAME, value: "pageInfo" },
-                    type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "PageInfo" } }
+                    type: { kind: Kind.NON_NULL_TYPE, type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "PageInfo" } } },
                 });
             }
 
+            field.arguments = field.arguments || [];
+
             // does the connection type already have the "first" and "after" arguments?
-            if (addFirstArg && !connectionType.fields.some(f => f.name.value === "first")) {
-                connectionType.fields.push({
+            if (addFirstArg && !field.arguments.some(f => f.name.value === "first")) {
+                field.arguments.push({
                     description: { kind: Kind.STRING, value: "Returns the first _n_ elements from the list." },
-                    kind: Kind.FIELD_DEFINITION,
+                    kind: Kind.INPUT_VALUE_DEFINITION,
                     name: { kind: Kind.NAME, value: "first" },
                     type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "Int" } }
                 });
             }
 
-            if (addAfterArg && !connectionType.fields.some(f => f.name.value === "after")) {
-                connectionType.fields.push({
+            if (addAfterArg && !field.arguments.some(f => f.name.value === "after")) {
+                field.arguments.push({
                     description: { kind: Kind.STRING, value: "Returns the elements in the list that come after the specified cursor." },
-                    kind: Kind.FIELD_DEFINITION,
+                    kind: Kind.INPUT_VALUE_DEFINITION,
                     name: { kind: Kind.NAME, value: "after" },
                     type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "String" } }
                 });
             }
 
-            if (addLastArg && !connectionType.fields.some(f => f.name.value === "last")) {
-                connectionType.fields.push({
+            if (addLastArg && !field.arguments.some(f => f.name.value === "last")) {
+                field.arguments.push({
                     description: { kind: Kind.STRING, value: "Returns the last _n_ elements from the list." },
-                    kind: Kind.FIELD_DEFINITION,
+                    kind: Kind.INPUT_VALUE_DEFINITION,
                     name: { kind: Kind.NAME, value: "last" },
                     type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "Int" } }
                 });
             }
 
-            if (addBeforeArg && !connectionType.fields.some(f => f.name.value === "before")) {
-                connectionType.fields.push({
+            if (addBeforeArg && !field.arguments.some(f => f.name.value === "before")) {
+                field.arguments.push({
                     description: { kind: Kind.STRING, value: "Returns the elements in the list that come before the specified cursor." },
-                    kind: Kind.FIELD_DEFINITION,
+                    kind: Kind.INPUT_VALUE_DEFINITION,
                     name: { kind: Kind.NAME, value: "before" },
                     type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "String" } }
                 });
@@ -189,7 +191,7 @@ export function createConnectionTypes(ast: Mutable<DocumentNode>, config: Config
             description: { kind: Kind.STRING, value: "When paginating forwards, are there more items?" },
             kind: Kind.FIELD_DEFINITION,
             name: { kind: Kind.NAME, value: "hasNextPage" },
-            type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "Boolean" } }
+            type: { kind: Kind.NON_NULL_TYPE, type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "Boolean" } } },
         });
     }
 
@@ -198,7 +200,7 @@ export function createConnectionTypes(ast: Mutable<DocumentNode>, config: Config
             description: { kind: Kind.STRING, value: "When paginating backwards, are there more items?" },
             kind: Kind.FIELD_DEFINITION,
             name: { kind: Kind.NAME, value: "hasPreviousPage" },
-            type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "Boolean" } }
+            type: { kind: Kind.NON_NULL_TYPE, type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: "Boolean" } } },
         });
     }
 

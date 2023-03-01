@@ -33,14 +33,14 @@ export interface Config {
          * Output the final GraphQL schema after pre-processing to the specified
          * file path (relative to the config file).
          *
-         * @default ./schema.gen.graphqls
+         * @default "./schema.gen.graphqls"
          */
         outputFile?: false | string;
     };
     /** Settings for resolver generation. */
     resolvers?: {
         /** The directory to output resolver files to. */
-        outputDir: string;
+        outputDir?: string;
         /**
          * Determines how resolvers are output by default.
          *

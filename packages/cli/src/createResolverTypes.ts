@@ -157,8 +157,14 @@ export async function createResolverTypes(ast: Mutable<DocumentNode>, config: Co
                     // add the field to the type resolver
                     typeResolver.addProperty({
                         name: fieldName,
-                        type: `ResolverFn<${typeName}, ${resolverName}.${fieldName}.Args, ${resolverName}.${fieldName}.Result>`,
+                        type: `${resolverName}.${fieldName}`,
                         hasQuestionToken: true,
+                    });
+
+                    typeResolverNamespace.addTypeAlias({
+                        name: fieldName,
+                        type: `ResolverFn<${typeName}, ${fieldName}.Args, ${fieldName}.Result>`,
+                        isExported: true,
                     });
 
                     // create a namespace for the field's args and return types
