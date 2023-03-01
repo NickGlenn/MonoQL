@@ -1,5 +1,5 @@
 import { DocumentNode, Kind } from "graphql";
-import { ExportedDeclarations, FunctionDeclaration, Project } from "ts-morph";
+import { ExportedDeclarations, FunctionDeclaration, Project, SyntaxKind } from "ts-morph";
 import { Config } from "./config";
 import type { Mutable } from "./parser";
 
@@ -29,6 +29,56 @@ export function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Config) {
         // if the format is "file" then we're looking for a file with the same name as the
         // type that exports typed constants for each resolver field
         if (format === "file") {
+            // find the resolver file for this type or create it if it doesn't exist
+            let resolverFile = project.getSourceFile(`${resolversDir}/${definition.name.value}.ts`);
+            if (!resolverFile) {
+                resolverFile = project.createSourceFile(`${resolversDir}/${definition.name.value}.ts`, "", { overwrite: true })!;
+            }
+
+            // find or create the exported resolver constant for this GraphQL type
+            // we'll add missing fields to this constant as we go and we'll strip off
+            // any fields that are no longer in the GraphQL type
+            let resolverConst = resolverFile.getVariableStatement(definition.name.value);
+            if (!resolverConst) {
+                resolverConst = resolverFile.addVariableStatement({
+                    isExported: true,
+                    declarations: [{
+                        name: definition.name.value,
+                        type: `${definition.name.value}Resolvers`,
+                        initializer: "{}",
+                    }],
+                });
+            }
+
+            // get the object literal expression for the resolver constant
+            const resolverConstObj = resolverConst.getDeclarations()[0].getInitializerIfKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+            // ensure that each field that needs a resolver on the GraphQL type has an exported
+            // constant with the same name as the field and the same type as the resolver function
+            for (const field of definition.fields || []) {
+                const fieldName = field.name.value;
+
+                // determine if the field needs a resolver - currently we determine this automatically
+                // by checking if the field has any arguments
+                const hasArgs = field.arguments?.length ?? 0 > 0;
+                if (!hasArgs) {
+                    continue;
+                }
+
+                // does the resolver constant already have a property for this field?
+                const resolverConstProp = resolverConstObj.getProperty(fieldName);
+                if (resolverConstProp) {
+                    // skip this field if it already has a resolver
+                    continue;
+                }
+
+                // add a new property to the resolver constant for this field
+                resolverConstObj.addMethod({
+                    name: fieldName,
+                    isAsync: true,
+                    statements: `throw new Error("Not implemented yet");`,
+                });
+            }
 
             continue;
         }
@@ -39,36 +89,49 @@ export function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Config) {
         // be loaded into an index.ts file that exports all the resolvers for this type as an object
         if (format === "directory") {
 
-        }
-
-
-
-        const name = definition.name.value;
-        const resolversMap: Record<string, ExportedDeclarations> = {};
-
-        // is there a directory of resolver files for this type? if so, we'll scan the files in
-        // the directory and load them
-        const dir = project.getDirectory(`${resolversDir}/${name}`);
-        if (dir) {
-            // iterate over each file in the directory and load it - create a map of exported
-            // resolver functions to their names
-            for (const file of dir.getSourceFiles()) {
-                console.log(file.getFilePath());
-                // for (const exportDec of file.getExportedDeclarations()) {
-                //     resolversMap[exportDec[0]] = exportDec[1];
-                // }
+            // find the resolver directory for this type or create it if it doesn't exist
+            let resolverDir = project.getDirectory(`${resolversDir}/${definition.name.value}`);
+            if (!resolverDir) {
+                resolverDir = project.createDirectory(`${resolversDir}/${definition.name.value}`);
             }
+
+            // find or create the index.ts file for this type
+            let resolverIndexFile = resolverDir.getSourceFile("index.ts");
+            if (!resolverIndexFile) {
+                resolverIndexFile = resolverDir.createSourceFile("index.ts", "", { overwrite: true })!;
+            }
+
+            for (const field of definition.fields || []) {
+                const fieldName = field.name.value;
+
+                // create the file for the resolver constant for this field if it doesn't exist
+                let resolverFile = resolverDir.getSourceFile(`${fieldName}.ts`);
+                if (!resolverFile) {
+                    resolverFile = resolverDir.createSourceFile(`${fieldName}.ts`, "", { overwrite: true })!;
+                }
+
+                // make sure the file exports a constant with the same name as the field
+                // and the same type as the resolver function
+                let resolverConst = resolverFile.getVariableStatement(fieldName);
+                if (!resolverConst) {
+                    resolverConst = resolverFile.addVariableStatement({
+                        isExported: true,
+                        declarations: [{
+                            name: fieldName,
+                            type: `${fieldName}Resolver`,
+                            initializer: "async (src, args, ctx) => { throw new Error(\"Not implemented yet\"); }",
+                        }],
+                    });
+                } else {
+                    // if the constant already exists then make sure it has the correct type
+                    const resolverConstDecl = resolverConst.getDeclarations()[0];
+                    if (resolverConstDecl.getType().getText() !== `${fieldName}Resolver`) {
+                        resolverConstDecl.setType(`${fieldName}Resolver`);
+                    }
+                }
+            }
+
+            //
         }
-        // otherwise, try to find a single file for this type
-
-
-        // find the resolver file OR directory of resolvers for this type
-        // if neither exist, create a new file for this type
-        const resolverFile = project.getSourceFile(`${resolversDir}/${name}.ts`);
-        if (resolverFile) {
-
-        }
-
-        // walk over each field and add a resolver
     }
 }
