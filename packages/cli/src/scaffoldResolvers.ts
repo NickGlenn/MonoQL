@@ -1,6 +1,6 @@
 import { DocumentNode, Kind } from "graphql";
-import { ExportedDeclarations, FunctionDeclaration, Project, SyntaxKind } from "ts-morph";
-import { Config } from "./config";
+import { Project, SyntaxKind } from "ts-morph";
+import type { Config } from "./config";
 import type { Mutable } from "./parser";
 
 /**
@@ -13,7 +13,7 @@ export function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Config) {
     const project = new Project();
 
     // get the resolvers directory
-    const resolversDir = config.resolvers.outputDir ?? "./src/resolvers";
+    const resolversDir = config.resolvers?.outputDir ?? "./src/resolvers";
 
     for (const definition of ast.definitions) {
         if (definition.kind !== Kind.OBJECT_TYPE_DEFINITION) {
@@ -35,6 +35,15 @@ export function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Config) {
                 resolverFile = project.createSourceFile(`${resolversDir}/${definition.name.value}.ts`, "", { overwrite: true })!;
             }
 
+            // find the import for the resolver interface and add the import if it doesn't exist
+            let resolverImport = resolverFile.getImportDeclaration(`./types.gen`);
+            if (!resolverImport) {
+                resolverImport = resolverFile.addImportDeclaration({
+                    moduleSpecifier: `./types.gen`,
+                    namedImports: [`${definition.name.value}Resolver`],
+                });
+            }
+
             // find or create the exported resolver constant for this GraphQL type
             // we'll add missing fields to this constant as we go and we'll strip off
             // any fields that are no longer in the GraphQL type
@@ -44,7 +53,7 @@ export function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Config) {
                     isExported: true,
                     declarations: [{
                         name: definition.name.value,
-                        type: `${definition.name.value}Resolvers`,
+                        type: `${definition.name.value}Resolver`,
                         initializer: "{}",
                     }],
                 });
@@ -101,6 +110,15 @@ export function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Config) {
                 resolverIndexFile = resolverDir.createSourceFile("index.ts", "", { overwrite: true })!;
             }
 
+            // find the import for the resolver interface and add the import if it doesn't exist
+            let resolverImport = resolverIndexFile.getImportDeclaration(`./types.gen`);
+            if (!resolverImport) {
+                resolverImport = resolverIndexFile.addImportDeclaration({
+                    moduleSpecifier: `./types.gen`,
+                    namedImports: [`${definition.name.value}Resolver`],
+                });
+            }
+
             for (const field of definition.fields || []) {
                 const fieldName = field.name.value;
 
@@ -118,7 +136,7 @@ export function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Config) {
                         isExported: true,
                         declarations: [{
                             name: fieldName,
-                            type: `${fieldName}Resolver`,
+                            type: `${definition.name.value}Resolver["${fieldName}"]`,
                             initializer: "async (src, args, ctx) => { throw new Error(\"Not implemented yet\"); }",
                         }],
                     });

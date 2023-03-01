@@ -4,7 +4,6 @@ import * as path from "path";
 import * as yargs from "yargs";
 import { cosmiconfig } from "cosmiconfig";
 import { Mutable, parseSchema } from "./parser";
-import { Generator } from "./generate";
 import Listr from "listr";
 import { TypeScriptLoader } from "cosmiconfig-typescript-loader";
 import { DocumentNode, print } from "graphql";
@@ -12,7 +11,8 @@ import { flattenExtensionTypes, implementMissingBaseDeclarations, implementMissi
 import { validate } from "json-schema";
 import { writeFile } from "fs/promises";
 import { Config, mergeObjects } from "./config";
-import getDefaults from "json-schema-defaults";
+import { createConnectionTypes } from "./createConnectionTypes";
+import { createResolverTypes } from "./createResolverTypes";
 
 export interface PipelineContext {
     /** Directory of the configuration file. */
@@ -73,8 +73,9 @@ const tasks = new Listr<PipelineContext>([
 
             // validate the configuration file
             const configSchema = require("../schema.json");
-            const defaultConfig = getDefaults(configSchema);
-            const config = mergeObjects(defaultConfig, configResult.config);
+            // const defaultConfig = getDefaults(configSchema);
+            // const config = mergeObjects(defaultConfig, configResult.config);
+            const config = configResult.config;
             const res = validate(config, configSchema);
 
             if (!res.valid) {
@@ -94,55 +95,36 @@ const tasks = new Listr<PipelineContext>([
         },
     }, {
         title: "Implementing missing base definitions",
-        skip: (ctx) => !ctx.config.preprocess?.implementMissingBaseDefinitions,
+        skip: (ctx) => ctx.config.preprocess?.implementMissingBaseDefinitions === false,
         task: (ctx) => implementMissingBaseDeclarations(ctx.ast),
     }, {
         title: "Flattening extension types",
-        skip: (ctx) => !ctx.config.preprocess?.flattenExtensionTypes,
+        skip: (ctx) => ctx.config.preprocess?.flattenExtensionTypes === false,
         task: (ctx) => flattenExtensionTypes(ctx.ast),
     }, {
         title: "Implementing missing interface fields",
-        skip: (ctx) => !ctx.config.preprocess?.implementMissingInterfaceFields,
+        skip: (ctx) => ctx.config.preprocess?.implementMissingInterfaceFields === false,
         task: (ctx) => implementMissingInterfaceFields(ctx.ast),
     }, {
-        title: "Executing pipeline",
-        task: async (ctx, task) => {
-            const pipeline = new Listr<PipelineContext>();
-
-            // TODO: create a task for each plugin specified in the config file
-
-            // pipeline.add({
-            //     title: "Generating code for MongoDB",
-            //     task(ctx, task) {
-            //         return new Promise((resolve, reject) => {
-            //             setTimeout(() => {
-            //                 resolve(null);
-            //             }, 5000);
-            //         });
-            //     },
-            // });
-
-            // pipeline.add({
-            //     title: "Create Resolvers",
-            //     task(ctx, task) {
-            //         return new Promise((resolve, reject) => {
-            //             setTimeout(() => {
-            //                 resolve(null);
-            //             }, 5000);
-            //         });
-            //     },
-            // });
-
-            return pipeline;
-        },
+        title: "Generating @connection types",
+        // skip: (ctx) => !ctx.config.preprocess?.generateConnectionTypes,
+        task: (ctx) => createConnectionTypes(ctx.ast, ctx.config),
+    }, {
+        title: "Generating server-side resolver types",
+        task: (ctx) => createResolverTypes(ctx.ast, ctx.config, ctx.configDir),
     }, {
         title: "Exporting final schema",
-        skip: (ctx) => !ctx.config.preprocess?.outputFile,
+        skip: (ctx) => ctx.config.preprocess?.outputFile === false,
         task: async (ctx) => {
             // make the path relative to the config file unless it's an absolute path
-            const outputPath = path.isAbsolute(ctx.config.preprocess?.outputFile!)
-                ? ctx.config.preprocess?.outputFile!
-                : path.join(ctx.configDir, ctx.config.preprocess?.outputFile!);
+            let outputPath = "./schema.gen.graphqls";
+            if (ctx.config.preprocess?.outputFile) {
+                outputPath = ctx.config.preprocess.outputFile;
+            }
+
+            if (!path.isAbsolute(outputPath)) {
+                outputPath = path.join(ctx.configDir, outputPath);
+            }
 
             await writeFile(outputPath, print(ctx.ast as DocumentNode));
         },
@@ -150,37 +132,7 @@ const tasks = new Listr<PipelineContext>([
 ]);
 
 
-
 tasks.run().catch((err) => {
-    // console.error(err);
+    console.error(err);
     process.exit(1);
 });
-
-
-
-// (async function () {
-
-
-
-
-
-//     // load the schema files and parse them
-//     const ast = parseSchema(configDir, config.schema.input);
-
-//     // generate the code
-//     const { graphqlSchema, tsCode } = new Generator(ast);
-
-//     // write the generated code to the output file - this should relative to the
-//     // config file unless it's an absolute path
-//     const serverOutputPath = path.isAbsolute(config.serverOutput)
-//         ? config.serverOutput
-//         : path.join(configDir, config.serverOutput);
-//     fs.writeFileSync(serverOutputPath, tsCode);
-
-//     // write the generated schema to the output file - this should relative to the
-//     // config file unless it's an absolute path
-//     const schemaOutputPath = path.isAbsolute(config.schema.output)
-//         ? config.schema.output
-//         : path.join(configDir, config.schema.output);
-//     fs.writeFileSync(schemaOutputPath, graphqlSchema);
-// })();

@@ -1,4 +1,6 @@
-scalar Email @map(to: "string")
+scalar Email @ts(type: "string")
+
+scalar DateTime @ts(type: "Date")
 
 interface Node {
     "The globally unique identifier for the node."

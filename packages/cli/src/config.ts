@@ -35,10 +35,10 @@ export interface Config {
          *
          * @default ./schema.gen.graphqls
          */
-        outputFile?: string;
+        outputFile?: false | string;
     };
     /** Settings for resolver generation. */
-    resolvers: {
+    resolvers?: {
         /** The directory to output resolver files to. */
         outputDir: string;
         /**
@@ -79,29 +79,33 @@ export interface Config {
 // export type CliConfig = z.infer<typeof configSchema>;
 
 
-/**
- * Recursively generates the default values for a JSON schema.
- */
-export function generateDefaultValues(schema: unknown): any {
-    if (Array.isArray(schema)) {
-        return schema.map(generateDefaultValues);
-    } else if (typeof schema === "object" && schema !== null) {
-        if (schema.hasOwnProperty("default")) {
-            return (schema as any).default;
-        } else if (schema.hasOwnProperty("properties")) {
-            const obj: { [key: string]: any } = {};
-            for (const [key, value] of Object.entries((schema as any).properties)) {
-                obj[key] = generateDefaultValues(value);
-            }
-            return obj;
-        } else if (schema.hasOwnProperty("items")) {
-            return generateDefaultValues((schema as any).items);
-        } else {
-            return null;
+interface DefaultObject {
+    [key: string]: any;
+}
+
+export function extractDefaults(obj: any, defaults: DefaultObject = {}): DefaultObject {
+    if (typeof obj !== "object" || obj === null) {
+        return defaults;
+    }
+
+    if (Array.isArray(obj)) {
+        for (let i = 0; i < obj.length; i++) {
+            extractDefaults(obj[i], defaults);
         }
     } else {
-        return null;
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                const value = obj[key];
+                if (key === "default") {
+                    defaults[value] = true;
+                } else {
+                    extractDefaults(value, defaults);
+                }
+            }
+        }
     }
+
+    return defaults;
 }
 
 /**

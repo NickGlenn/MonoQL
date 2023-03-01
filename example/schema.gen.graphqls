@@ -24,7 +24,9 @@ type Cat implements Creature {
 
 union Animal = Dog | Cat
 
-scalar Email @map(to: "string")
+scalar Email
+
+scalar DateTime
 
 interface Node {
   "The globally unique identifier for the node."
@@ -61,5 +63,28 @@ type Query {
   "Returns a user by ID, if they exist and the caller has access to it."
   user(id: ID!): User
   "Returns all users that the caller has access to."
-  users: UserConnection @connection(for: "User")
+  users: UserConnection
+}
+
+"A connection to a list of `User` items."
+type UserConnection {
+  "A list of `User` objects."
+  nodes: [User!]!
+  "Information to aid in pagination."
+  pageInfo: PageInfo
+  "Returns the first _n_ elements from the list."
+  first: Int
+  "Returns the elements in the list that come after the specified cursor."
+  after: String
+}
+
+type PageInfo {
+  "When paginating forwards, are there more items?"
+  hasNextPage: Boolean
+  "When paginating backwards, are there more items?"
+  hasPreviousPage: Boolean
+  "When paginating backwards, the cursor to continue."
+  startCursor: String
+  "When paginating forwards, the cursor to continue."
+  endCursor: String
 }

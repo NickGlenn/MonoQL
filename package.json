@@ -1,7 +1,7 @@
 {
   "name": "moniql",
   "version": "1.0.0",
-  "description": "A GraphQL MongoDB server generator.",
+  "description": "A generative GraphQL toolchain for Typescript.",
   "main": "index.js",
   "scripts": {
     "build": "lerna run build",
@@ -14,8 +14,8 @@
   },
   "keywords": [
     "graphql",
-    "mongo",
-    "mongodb",
+    "toolchain",
+    "codegen",
     "generative"
   ],
   "author": "Nick Glenn <nick@catalystsoftworks.com>",
