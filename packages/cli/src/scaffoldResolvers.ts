@@ -38,6 +38,18 @@ export async function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Conf
             continue;
         }
 
+        definition.fields = definition.fields || [];
+
+        // collect the fields that should have resolvers
+        // right now we're just looking for fields that have arguments but in the future
+        // we'll support other ways of determining if a field needs a resolver (@computed directive)
+        const fieldsWithResolvers = definition.fields.filter(f => f.arguments?.length ?? 0 > 0) ?? [];
+
+        // if there are no fields that need resolvers then we don't need to do anything
+        if (fieldsWithResolvers.length === 0) {
+            continue;
+        }
+
         const typeName = definition.name.value;
 
         // what type of resolver format are we using for this type?
@@ -86,15 +98,8 @@ export async function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Conf
 
             // ensure that each field that needs a resolver on the GraphQL type has an exported
             // constant with the same name as the field and the same type as the resolver function
-            for (const field of definition.fields || []) {
+            for (const field of fieldsWithResolvers) {
                 const fieldName = field.name.value;
-
-                // determine if the field needs a resolver - currently we determine this automatically
-                // by checking if the field has any arguments
-                const hasArgs = field.arguments?.length ?? 0 > 0;
-                if (!hasArgs) {
-                    continue;
-                }
 
                 // does the resolver constant already have a property for this field?
                 const resolverConstProp = resolverConstObj.getProperty(fieldName);
@@ -126,9 +131,7 @@ export async function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Conf
                 resolverDir = project.createDirectory(`${resolversDir}/${typeName}`);
             }
 
-            definition.fields = definition.fields || [];
-
-            for (const field of definition.fields) {
+            for (const field of fieldsWithResolvers) {
                 const fieldName = field.name.value;
 
                 // create the file for the resolver constant for this field if it doesn't exist
