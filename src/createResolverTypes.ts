@@ -1,6 +1,7 @@
 import { type DocumentNode, type TypeNode, Kind } from "graphql";
 import { Project, ModuleDeclarationKind } from "ts-morph";
 import type { Mutable } from "./parser";
+import type { PipelineContext } from "./bin";
 
 const BUILTIN_SCALARS = {
     String: "string",
@@ -13,7 +14,7 @@ const BUILTIN_SCALARS = {
 /**
  * Generates the server-side resolver types for all GraphQL types in the schema.
  */
-export async function createResolverTypes(ast: Mutable<DocumentNode>, configDir: string, outputDir: string) {
+export async function createResolverTypes({ ast, outputDir }: PipelineContext}) {
 
     const project = new Project();
 

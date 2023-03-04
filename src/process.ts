@@ -1,6 +1,7 @@
 import { DefinitionNode, DocumentNode, InterfaceTypeDefinitionNode, Kind } from "graphql";
 import { Observable } from "rxjs";
 import type { Mutable } from "./parser";
+import type { PipelineContext } from "./bin";
 
 
 const mergableFieldsByKind: Record<string, string[]> = {
@@ -45,7 +46,7 @@ function printDefinitions(ast: Mutable<DocumentNode>) {
 /**
  * Implements missing types based on any objects that use the "extend" keyword.
  */
-export function implementMissingBaseDeclarations(ast: Mutable<DocumentNode>) {
+export function implementMissingBaseDeclarations({ ast }: PipelineContext) {
     return new Observable(observer => {
 
         const seenTypeAndKinds: Record<string, Kind> = {};
@@ -125,7 +126,7 @@ export function implementMissingBaseDeclarations(ast: Mutable<DocumentNode>) {
  * Flattens extension types into their base types. Throws an error on any duplicate fields
  * of the same name but different types.
  */
-export function flattenExtensionTypes(ast: Mutable<DocumentNode>) {
+export function flattenExtensionTypes({ ast }: PipelineContext) {
     type NodeIsh = { kind: Kind, name: { value: string } } & Record<string, any[]>;
 
     const baseTypes: Record<string, NodeIsh> = {};
@@ -186,7 +187,7 @@ export function flattenExtensionTypes(ast: Mutable<DocumentNode>) {
  * Finds all object type definitions that implement an interface and automatically implements
  * the interface's fields on the object type if not explicitly defined.
  */
-export function implementMissingInterfaceFields(ast: Mutable<DocumentNode>) {
+export function implementMissingInterfaceFields({ ast }: PipelineContext) {
     const interfaceMap: Record<string, Mutable<InterfaceTypeDefinitionNode>> = {};
 
     // first, we will build a map of all interfaces

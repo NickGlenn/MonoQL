@@ -16,6 +16,8 @@ export interface PipelineContext {
     schemaDir: string;
     /** Directory where the generated files should be written. */
     outputDir: string;
+    /** Default resolver scaffolding behavior. */
+    resolverDefault: "none" | "file" | "directory";
     /** The parsed schema AST. */
     ast: Mutable<DocumentNode>;
 };
@@ -33,44 +35,48 @@ export interface PipelineContext {
             type: "string",
             demandOption: true,
         })
+        .option("resolver-default", {
+            describe: "Default resolver scaffolding behavior",
+            type: "string",
+            choices: ["none", "file", "directory"],
+            default: "file",
+        })
         .help()
         .alias("help", "h").argv; ``
 
     return new Listr<PipelineContext>([
         {
-            title: "Loading configuration",
+            title: "Parsing schema",
             task: async (ctx) => {
                 ctx.schemaDir = path.resolve(argv.schema);
                 ctx.outputDir = path.resolve(argv.output);
-            },
-        }, {
-            title: "Parsing schema",
-            task: async (ctx) => {
+                ctx.resolverDefault = argv["resolver-default"] as "none" | "file" | "directory";
+
                 // load the schema files and parse them
                 ctx.ast = parseSchema(ctx.schemaDir);
             },
         }, {
             title: "Implementing missing base definitions",
             // skip: (ctx) => ctx.config.preprocess?.implementMissingBaseDefinitions === false,
-            task: (ctx) => implementMissingBaseDeclarations(ctx.ast),
+            task: implementMissingBaseDeclarations,
         }, {
             title: "Flattening extension types",
             // skip: (ctx) => ctx.config.preprocess?.flattenExtensionTypes === false,
-            task: (ctx) => flattenExtensionTypes(ctx.ast),
+            task: flattenExtensionTypes,
         }, {
             title: "Implementing missing interface fields",
             // skip: (ctx) => ctx.config.preprocess?.implementMissingInterfaceFields === false,
-            task: (ctx) => implementMissingInterfaceFields(ctx.ast),
+            task: implementMissingInterfaceFields,
         }, {
             title: "Generating @connection types",
             // skip: (ctx) => !ctx.config.preprocess?.generateConnectionTypes,
-            task: (ctx) => createConnectionTypes(ctx.ast),
+            task: createConnectionTypes,
         }, {
             title: "Generating server-side resolver types",
-            task: (ctx) => createResolverTypes(ctx.ast, ctx.schemaDir, ctx.outputDir),
+            task: createResolverTypes,
         }, {
             title: "Scaffolding resolvers",
-            task: (ctx) => scaffoldResolvers(ctx.ast, ctx.schemaDir, ctx.outputDir),
+            task: scaffoldResolvers,
         }, {
             title: "Exporting final schema",
             // skip: (ctx) => ctx.config.preprocess?.outputFile === false,

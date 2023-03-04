@@ -1,12 +1,12 @@
-import { DocumentNode, Kind } from "graphql";
+import { Kind } from "graphql";
 import { Project, SyntaxKind, VariableDeclarationKind } from "ts-morph";
-import type { Mutable } from "./parser";
+import type { PipelineContext } from "./bin";
 
 /**
  * Scaffolds out resolvers as individual functions if it can't be found in any
  * of the files within the specified "resolvers" directory.
  */
-export async function scaffoldResolvers(ast: Mutable<DocumentNode>, configDir: string, outputDir: string) {
+export async function scaffoldResolvers({ ast, outputDir }: PipelineContext) {
     // find all the resolver files in the resolvers/ directory and load them
     // with TS morph
     const project = new Project();

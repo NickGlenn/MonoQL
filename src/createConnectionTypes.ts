@@ -1,6 +1,7 @@
-import type { DocumentNode, ObjectTypeDefinitionNode, NamedTypeNode } from "graphql";
+import type { ObjectTypeDefinitionNode, NamedTypeNode } from "graphql";
 import { Kind } from "graphql";
 import type { Mutable } from "./parser";
+import type { PipelineContext } from "./bin";
 
 /**
  * Generates missing Relay-style connection types for all fields that use a @connection
@@ -17,7 +18,7 @@ import type { Mutable } from "./parser";
  * added to the connection field (if missing). By default, the "first" and "after" arguments
  * are added.
  */
-export function createConnectionTypes(ast: Mutable<DocumentNode>) {
+export function createConnectionTypes({ ast }: PipelineContext) {
     let pageType: undefined | Mutable<ObjectTypeDefinitionNode>;
 
     // TODO: get these from the config
