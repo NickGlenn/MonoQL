@@ -1,7 +1,6 @@
 import { DocumentNode, Kind } from "graphql";
 import { Project, SyntaxKind, VariableDeclarationKind } from "ts-morph";
 import type { Mutable } from "./parser";
-import * as path from "node:path";
 
 /**
  * Scaffolds out resolvers as individual functions if it can't be found in any
