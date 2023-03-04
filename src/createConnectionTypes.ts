@@ -18,15 +18,13 @@ import type { PipelineContext } from "./bin";
  * added to the connection field (if missing). By default, the "first" and "after" arguments
  * are added.
  */
-export function createConnectionTypes({ ast }: PipelineContext) {
+export function createConnectionTypes({ ast, connectionArgs, addTotalCountToPageInfo }: PipelineContext) {
     let pageType: undefined | Mutable<ObjectTypeDefinitionNode>;
 
-    // TODO: get these from the config
-    const addFirstArg = true;
-    const addAfterArg = true;
-    const addLastArg = false;
-    const addBeforeArg = false;
-    const addTotalCountToPageInfo = false;
+    const addFirstArg = connectionArgs.includes("first");
+    const addAfterArg = connectionArgs.includes("after");
+    const addLastArg = connectionArgs.includes("last");
+    const addBeforeArg = connectionArgs.includes("before");
 
 
     // iterate over all definitions in the schema

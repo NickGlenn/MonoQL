@@ -18,6 +18,12 @@ export interface PipelineContext {
     outputDir: string;
     /** Default resolver scaffolding behavior. */
     resolverDefault: "none" | "file" | "directory";
+    /** Is extension merging enabled? */
+    skipFlattenExtensionTypes: boolean;
+    /** Determines what arguments to add to connection type fields. */
+    connectionArgs: string[];
+    /** Should a totalCount field be added to connection types? */
+    addTotalCountToPageInfo: boolean;
     /** The parsed schema AST. */
     ast: Mutable<DocumentNode>;
 };
@@ -41,8 +47,25 @@ export interface PipelineContext {
             choices: ["none", "file", "directory"],
             default: "file",
         })
+        .option("no-extension-merging", {
+            describe: "Disable merging of extension types into their base types",
+            type: "boolean",
+            default: false,
+        })
+        // TODO: support offset pagination in addition to cursor connections
+        .option("connection-args", {
+            describe: "Determines what arguments to add to connection type fields",
+            type: "array",
+            choices: ["first", "last", "before", "after"],
+            default: ["first", "after"],
+        })
+        .option("add-total-count-to-page-info", {
+            describe: "Should a totalCount field be added to generated PageInfo type?",
+            type: "boolean",
+            default: false,
+        })
         .help()
-        .alias("help", "h").argv; ``
+        .alias("help", "h").argv;
 
     return new Listr<PipelineContext>([
         {
@@ -51,6 +74,9 @@ export interface PipelineContext {
                 ctx.schemaDir = path.resolve(argv.schema);
                 ctx.outputDir = path.resolve(argv.output);
                 ctx.resolverDefault = argv["resolver-default"] as "none" | "file" | "directory";
+                ctx.skipFlattenExtensionTypes = argv["no-extension-merging"];
+                ctx.connectionArgs = argv["connection-args"];
+                ctx.addTotalCountToPageInfo = argv["add-total-count-to-page-info"];
 
                 // load the schema files and parse them
                 ctx.ast = parseSchema(ctx.schemaDir);
@@ -61,7 +87,7 @@ export interface PipelineContext {
             task: implementMissingBaseDeclarations,
         }, {
             title: "Flattening extension types",
-            // skip: (ctx) => ctx.config.preprocess?.flattenExtensionTypes === false,
+            skip: (ctx) => ctx.skipFlattenExtensionTypes,
             task: flattenExtensionTypes,
         }, {
             title: "Implementing missing interface fields",

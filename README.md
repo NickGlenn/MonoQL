@@ -68,7 +68,7 @@ type Mutation @resolver(type: DIRECTORY) {
 
 ## Flatten Extension Types
 
-Automatically merges extension types down into flattened base types. This is useful for schemas that use extension types to add fields to existing types. Disable the feature by providing the `--no-flatten-extensions` flag.
+Automatically merges extension types down into flattened base types. This is useful for schemas that use extension types to add fields to existing types. Disable the feature by providing the `--no-extension-merging` flag.
 
 For example, the following schema:
 

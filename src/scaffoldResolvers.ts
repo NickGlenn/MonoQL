@@ -6,7 +6,7 @@ import type { PipelineContext } from "./bin";
  * Scaffolds out resolvers as individual functions if it can't be found in any
  * of the files within the specified "resolvers" directory.
  */
-export async function scaffoldResolvers({ ast, outputDir }: PipelineContext) {
+export async function scaffoldResolvers({ ast, outputDir, resolverDefault }: PipelineContext) {
     // find all the resolver files in the resolvers/ directory and load them
     // with TS morph
     const project = new Project();
@@ -33,8 +33,13 @@ export async function scaffoldResolvers({ ast, outputDir }: PipelineContext) {
 
         const typeName = definition.name.value;
 
+        // find the @resolver directive on the type and get the "type" argument
+        const resolverDirective = definition.directives?.find(d => d.name.value === "resolver");
+        const resolverTypeArg = resolverDirective?.arguments?.find(a => a.kind === Kind.ARGUMENT && a.name.value === "type");
+        const resolverType = resolverTypeArg?.value.kind === Kind.STRING ? resolverTypeArg.value.value : undefined;
+
         // what type of resolver format are we using for this type?
-        const format: string = "file";
+        const format = resolverType ?? resolverDefault;
 
         // const format = config.resolvers?.overrides?.[typeName] ?? config.resolvers?.format ?? "file";
         if (format === "none") {
