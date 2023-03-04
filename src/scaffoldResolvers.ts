@@ -12,14 +12,6 @@ export async function scaffoldResolvers(ast: Mutable<DocumentNode>, configDir: s
     // with TS morph
     const project = new Project();
 
-    // TODO: move this
-    config.resolvers = {
-        overrides: {
-            Query: "directory",
-            Mutation: "directory",
-        }
-    };
-
     for (const definition of ast.definitions) {
 
         // TODO: union types
@@ -43,7 +35,9 @@ export async function scaffoldResolvers(ast: Mutable<DocumentNode>, configDir: s
         const typeName = definition.name.value;
 
         // what type of resolver format are we using for this type?
-        const format = config.resolvers?.overrides?.[typeName] ?? config.resolvers?.format ?? "file";
+        const format: string = "file";
+
+        // const format = config.resolvers?.overrides?.[typeName] ?? config.resolvers?.format ?? "file";
         if (format === "none") {
             continue;
         }

@@ -22,7 +22,8 @@
     "build": "tsc",
     "schema": "typescript-json-schema 'src/config.ts' Config --required --topRef --out schema.json",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "demo": "ts-node src/bin.ts --schema ./example/schema/**/*.graphqls --output ./examples/generated"
+    "demo": "ts-node src/bin.ts --schema ./example/schema/**/*.graphqls --output ./example/generated",
+    "bin": "ts-node src/bin.ts"
   },
   "dependencies": {
     "glob": "^8.1.0",
@@ -38,6 +39,7 @@
     "@types/glob": "^8.1.0",
     "@types/listr": "^0.14.4",
     "@types/node": "^18.14.1",
-    "@types/yargs": "^17.0.22"
+    "@types/yargs": "^17.0.22",
+    "ts-node": "^10.9.1"
   }
 }

@@ -67,24 +67,15 @@ export interface PipelineContext {
             task: (ctx) => createConnectionTypes(ctx.ast),
         }, {
             title: "Generating server-side resolver types",
-            task: (ctx) => createResolverTypes(ctx.ast, ctx.config, ctx.configDir),
+            task: (ctx) => createResolverTypes(ctx.ast, ctx.schemaDir, ctx.outputDir),
         }, {
             title: "Scaffolding resolvers",
-            task: (ctx) => scaffoldResolvers(ctx.ast, ctx.config, ctx.configDir),
+            task: (ctx) => scaffoldResolvers(ctx.ast, ctx.schemaDir, ctx.outputDir),
         }, {
             title: "Exporting final schema",
-            skip: (ctx) => ctx.config.preprocess?.outputFile === false,
+            // skip: (ctx) => ctx.config.preprocess?.outputFile === false,
             task: async (ctx) => {
-                // make the path relative to the config file unless it's an absolute path
-                let outputPath = "./schema.gen.graphqls";
-                if (ctx.config.preprocess?.outputFile) {
-                    outputPath = ctx.config.preprocess.outputFile;
-                }
-
-                if (!path.isAbsolute(outputPath)) {
-                    outputPath = path.join(ctx.configDir, outputPath);
-                }
-
+                const outputPath = path.join(ctx.outputDir, "schema.gen.graphqls");
                 await writeFile(outputPath, print(ctx.ast as DocumentNode));
             },
         }
