@@ -1,6 +1,5 @@
 import type { DocumentNode, ObjectTypeDefinitionNode, NamedTypeNode } from "graphql";
 import { Kind } from "graphql";
-import type { Config } from "./config";
 import type { Mutable } from "./parser";
 
 /**
@@ -18,7 +17,7 @@ import type { Mutable } from "./parser";
  * added to the connection field (if missing). By default, the "first" and "after" arguments
  * are added.
  */
-export function createConnectionTypes(ast: Mutable<DocumentNode>, config: Config) {
+export function createConnectionTypes(ast: Mutable<DocumentNode>) {
     let pageType: undefined | Mutable<ObjectTypeDefinitionNode>;
 
     // TODO: get these from the config

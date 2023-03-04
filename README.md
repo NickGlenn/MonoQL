@@ -1,17 +1,40 @@
-# Moniql
+![MonoQL](./logo.png)
 
-Moniql is tool for creating GraphQL servers with an automatic MongoDB backend. The goal is to create a solution for building complex applications quickly, using GraphQL schema definition files to do the heavy lifting. The project is built using Typescript and provides a command line tool for generating a GraphQL server.
+MonoQL is command line tool that helps with the creation of GraphQL servers using Typescript and NodeJS/Deno. It's similar to GraphQL code generator's `typescript-resolver` plugin, but unlike GraphQL codegen, MonoQL is able to modify the resulting AST and provides a variety of directives that can be used to customize the generated code.
+
+## Features
+
+- Generate server-side Typescript types for GraphQL schema's objects and resolvers
+- Customize how resolvers are generated using directives
+- Automatically generate DBOs (Data-Base Objects) for each object type in the schema using the `@dbo` directive
+- Automatically generate Relay-style connections for each object type in the schema using the `@connection` directive
+- Merges extension types down into flattened types
+- Automatically implements missing interface fields
 
 ## Getting Started
 
-Install the moniql command line tool and supporting library:
+Install the monoql command line tool:
 
 ```bash
-npm install moniql
+npm install monoql
 ```
 
-Create a `moniql.yml` file in the root of your project. This file will contain the configuration for your server. Point the `schema` property to the path of your GraphQL schema file(s). The schema file should be a valid GraphQL schema definition file. The `schema` property can also be a glob pattern, which will be used to match multiple schema files.
+And add a script to your `package.json` file:
 
-```yaml
-schema: ./schema/**/*.graphql
+```json
+{
+  "scripts": {
+    "monoql": "monoql --schema ./schema/**/*.graphql --output ./src/generated"
+  }
+}
 ```
+
+This will execute the command line tool using the schema files in the `schema` directory and output the generated files to the `src/generated` directory.
+
+## CLI Options
+
+TODO
+
+## Directives
+
+TODO

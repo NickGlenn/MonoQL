@@ -8,10 +8,9 @@ import { parse } from "graphql";
  * collect custom directives and other metadata to create the internal definitions that
  * will be used for code generation.
  */
-export function parseSchema(dir: string, schemaFiles: string) {
+export function parseSchema(schemaFiles: string) {
     const files = glob.sync(schemaFiles, {
         absolute: true,
-        cwd: dir,
     });
 
     // load all the schema files and merge them into a single string

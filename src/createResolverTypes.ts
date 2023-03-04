@@ -1,8 +1,6 @@
 import { type DocumentNode, type TypeNode, Kind } from "graphql";
 import { Project, ModuleDeclarationKind } from "ts-morph";
-import type { Config } from "./config";
 import type { Mutable } from "./parser";
-import * as path from "node:path";
 
 const BUILTIN_SCALARS = {
     String: "string",
@@ -15,7 +13,7 @@ const BUILTIN_SCALARS = {
 /**
  * Generates the server-side resolver types for all GraphQL types in the schema.
  */
-export async function createResolverTypes(ast: Mutable<DocumentNode>, config: Config, configDir: string) {
+export async function createResolverTypes(ast: Mutable<DocumentNode>, configDir: string, outputDir: string) {
 
     const project = new Project();
 
@@ -27,17 +25,8 @@ export async function createResolverTypes(ast: Mutable<DocumentNode>, config: Co
         }
     }
 
-
-    // determine the output path
-    let outputPath = config.resolvers?.outputDir ?? "./src/resolvers";
-
-    // if the path is not absolute, make it relative to the config file
-    if (!path.isAbsolute(outputPath)) {
-        outputPath = path.join(configDir, outputPath);
-    }
-
     // (re)create the resolver types file
-    const resolverTypesFile = project.createSourceFile(`${outputPath}/types.gen.ts`, "", { overwrite: true });
+    const resolverTypesFile = project.createSourceFile(`${outputDir}/types.gen.ts`, "", { overwrite: true });
 
     resolverTypesFile.addTypeAlias({ name: "Ctx", type: "{}" });
     resolverTypesFile.addTypeAlias({ name: "Maybe<T>", type: "T | null" });

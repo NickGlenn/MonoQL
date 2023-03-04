@@ -1,6 +1,5 @@
 import { DocumentNode, Kind } from "graphql";
 import { Project, SyntaxKind, VariableDeclarationKind } from "ts-morph";
-import type { Config } from "./config";
 import type { Mutable } from "./parser";
 import * as path from "node:path";
 
@@ -8,18 +7,10 @@ import * as path from "node:path";
  * Scaffolds out resolvers as individual functions if it can't be found in any
  * of the files within the specified "resolvers" directory.
  */
-export async function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Config, configDir: string) {
+export async function scaffoldResolvers(ast: Mutable<DocumentNode>, configDir: string, outputDir: string) {
     // find all the resolver files in the resolvers/ directory and load them
     // with TS morph
     const project = new Project();
-
-    // get the resolvers directory
-    let resolversDir = config.resolvers?.outputDir ?? "./src/resolvers";
-
-    // if the path is not absolute, make it relative to the config file
-    if (!path.isAbsolute(resolversDir)) {
-        resolversDir = path.join(configDir, resolversDir);
-    }
 
     // TODO: move this
     config.resolvers = {
@@ -28,7 +19,6 @@ export async function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Conf
             Mutation: "directory",
         }
     };
-
 
     for (const definition of ast.definitions) {
 
@@ -62,9 +52,9 @@ export async function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Conf
         // type that exports typed constants for each resolver field
         if (format === "file") {
             // find the resolver file for this type or create it if it doesn't exist
-            let resolverFile = project.getSourceFile(`${resolversDir}/${typeName}.ts`);
+            let resolverFile = project.getSourceFile(`${outputDir}/${typeName}.ts`);
             if (!resolverFile) {
-                resolverFile = project.createSourceFile(`${resolversDir}/${typeName}.ts`, "", { overwrite: true })!;
+                resolverFile = project.createSourceFile(`${outputDir}/${typeName}.ts`, "", { overwrite: true })!;
             }
 
             // find the import for the resolver interface and add the import if it doesn't exist
@@ -126,9 +116,9 @@ export async function scaffoldResolvers(ast: Mutable<DocumentNode>, config: Conf
         if (format === "directory") {
 
             // find the resolver directory for this type or create it if it doesn't exist
-            let resolverDir = project.getDirectory(`${resolversDir}/${typeName}`);
+            let resolverDir = project.getDirectory(`${outputDir}/${typeName}`);
             if (!resolverDir) {
-                resolverDir = project.createDirectory(`${resolversDir}/${typeName}`);
+                resolverDir = project.createDirectory(`${outputDir}/${typeName}`);
             }
 
             for (const field of fieldsWithResolvers) {
