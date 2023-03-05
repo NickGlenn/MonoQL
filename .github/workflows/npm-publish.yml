@@ -31,8 +31,7 @@ jobs:
         run: npm publish --access public
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1.0.6
+        uses: elgohr/Github-Release-Action@v2.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
