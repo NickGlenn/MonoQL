@@ -261,7 +261,7 @@ Additionally, the `pageArgs` provides a list of arguments that will be added to 
 
 ### `generateTypescriptResolverTypes`
 
-Generates Typescript types that can be used when implementing resolvers for your schema (most commonly, for a GraphQL server).
+Generates Typescript types that can be used when implementing resolvers for your schema (most commonly, for a GraphQL server). This is built over top GraphQL codegen's `typescript` and `typescript-resolvers` plugins and offers all the same configuration options and features.
 
 ```ts
 import { runPipeline, generateTypescriptResolverTypes } from "monoql";

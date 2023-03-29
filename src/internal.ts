@@ -61,7 +61,7 @@ export function addTypePathImport(source: SourceFile, typePath: TypePath, asName
             name: asName,
             type: name,
         });
+    } else {
+        throw new Error(`Invalid type path provided: ${JSON.stringify(typePath)}`);
     }
-
-    throw new Error(`Invalid type path provided: ${JSON.stringify(typePath)}`);
 }

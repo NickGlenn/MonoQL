@@ -39,11 +39,9 @@ interface Node {
 
 type User implements Node {
   "Email address of the user."
-  email: Email! @unique
-  "Password for the user account. This is hidden from clients."
-  password: String! @secret
+  email: Email!
   "Full name of the user."
-  name: String! @computed
+  name: String!
   "The globally unique identifier for the node."
   id: ID!
   "The date/time when the node was created."
@@ -68,7 +66,7 @@ type Query {
     first: Int
     "Returns the elements in the list that come after the specified cursor."
     after: String
-  ): UserConnection
+  ): UserConnection!
 }
 
 type PageInfo {

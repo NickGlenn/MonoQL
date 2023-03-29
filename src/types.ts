@@ -8,9 +8,8 @@ export type Mutable<T> = {
  *
  * If a string is provided, then the following rules apply:
  *
- * - If the string starts with a "." or ".." character, ends with a ".ts" or ".tsx"
- * extension, or contains a "#" character, then the first part of the string will
- * be used as the module path.
+ * - If the string starts with a "." or contains a "#" character, then the first
+ * part of the string will be used as the module path.
  *
  * - If the strings contains a "#" character, then the second part of the string
  * will be used as the type/symbol name. If this is not specified and the string is
@@ -40,7 +39,7 @@ export function normalizeTypePath(typePath: TypePath) {
         }
 
         // otherwise, we need to check if the string is a module path
-        if (typePath.startsWith(".") || typePath.endsWith(".ts") || typePath.endsWith(".tsx")) {
+        if (typePath.startsWith(".")) {
             return { modulePath: typePath };
         }
 

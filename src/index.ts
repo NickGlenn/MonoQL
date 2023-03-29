@@ -7,3 +7,4 @@ export * from "./actions/implementMissingInterfaceFields";
 export * from "./actions/saveSchema";
 export * from "./actions/generateRelayConnectionTypes";
 export * from "./actions/generateTypescriptResolverTypes";
+export * from "./actions/generateApolloClientOperations";

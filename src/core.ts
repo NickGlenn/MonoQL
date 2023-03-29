@@ -100,14 +100,15 @@ export async function runPipeline({
                 throw new Error(`Pipeline action is missing a name. If you are the author of this action, please add a "name" property to the action. Otherwise, you may need to get in touch with the author of the action.`);
             }
 
-            ctxName = "Validation Error: " + action.name;
             if (action.validate) {
+                ctxName = "Validation Error: " + action.name;
                 await action.validate(ctx);
             }
         }
 
         for (const action of pipeline) {
             currentAction = action;
+            ctxName = "Execution Error: " + action.name;
             await action.execute(ctx);
         }
 
