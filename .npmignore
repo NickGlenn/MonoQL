@@ -1,7 +1,6 @@
 # TypeScript source files
 src/
 tsconfig.json
-tsconfig.build.json
 
 # Build output
 __tests__/

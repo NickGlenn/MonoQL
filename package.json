@@ -1,10 +1,13 @@
 {
   "name": "monoql",
   "version": "1.0.0",
-  "description": "A generative GraphQL toolchain for Typescript.",
+  "description": "A code generation toolkit for GraphQL.",
   "author": "Nick Glenn <nick@catalystsoftworks.com>",
   "license": "MIT",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "typings": "dist/index.d.ts",
+  "type": "commonjs",
   "bin": {
     "monoql": "dist/bin.js"
   },
@@ -19,27 +22,22 @@
     "generative"
   ],
   "scripts": {
-    "build": "tsc",
-    "schema": "typescript-json-schema 'src/config.ts' Config --required --topRef --out schema.json",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "demo": "ts-node src/bin.ts --schema ./example/schema/**/*.graphqls --output ./example/generated",
-    "bin": "ts-node src/bin.ts"
+    "build": "tsc"
   },
   "dependencies": {
+    "@digitak/esrun": "^3.2.21",
+    "@graphql-codegen/core": "^3.1.0",
+    "@graphql-codegen/typescript": "^3.0.2",
+    "@graphql-codegen/typescript-operations": "^3.0.2",
+    "@graphql-codegen/typescript-resolvers": "^3.1.1",
     "glob": "^8.1.0",
     "graphql": "^16.6.0",
-    "listr": "^0.14.3",
-    "rxjs": "^7.8.0",
     "ts-morph": "^17.0.1",
-    "yaml": "^2.2.1",
-    "yargs": "^17.7.1",
-    "zod": "^3.20.6"
+    "yargs": "^17.7.1"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
-    "@types/listr": "^0.14.4",
     "@types/node": "^18.14.1",
-    "@types/yargs": "^17.0.22",
-    "ts-node": "^10.9.1"
+    "@types/yargs": "^17.0.22"
   }
 }

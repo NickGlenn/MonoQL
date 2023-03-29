@@ -13,11 +13,9 @@ interface Node {
 
 type User implements Node {
     "Email address of the user."
-    email: Email! @unique
-    "Password for the user account. This is hidden from clients."
-    password: String! @secret
+    email: Email!
     "Full name of the user."
-    name: String! @computed
+    name: String!
 }
 
 extend type Query {
@@ -26,7 +24,7 @@ extend type Query {
     "Returns a user by ID, if they exist and the caller has access to it."
     user(id: ID!): User
     "Returns all users that the caller has access to."
-    users: UserConnection @connection(for: "User")
+    users: UserConnection! @connection(for: "User")
 }
 
 extend type Mutation {
