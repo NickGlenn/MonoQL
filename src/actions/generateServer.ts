@@ -9,7 +9,7 @@ import type { PipelineAction } from "../runner";
 export type GenerateServerConfig = {
     /** Determines what server formula to use. */
     // TODO: add support for other frameworks
-    server: "types-only";
+    server: "generic";
     /** Output path for the generated resolver types. */
     resolverTypesOutput: string;
     /** Output path for the scaffolded resolvers. If not provided, scaffolding will be skipped. */

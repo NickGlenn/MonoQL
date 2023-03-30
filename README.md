@@ -67,7 +67,7 @@ monoql({
             // generate an Apollo client
             client: "apollo",
             // where should we look for the operations?
-            documents: "./src/**/*.graphql",
+            documents: "./queries/**/*.graphql",
             // where is the Apollo client code being created?
             clientPath: "./src/lib/api#client",
             // add custom bindings for using the client with Svelte
@@ -78,8 +78,8 @@ monoql({
             omitOperationSuffix: false,
         },
         {
-            // create supporting types and resolvers for a vanilla GraphQL server
-            server: "types-only",
+            // create supporting types and resolvers for a generic GraphQL server
+            server: "generic",
             // where should resolver type definitions go?
             resolverTypesOutput: "./src/types/resolvers.gen.ts",
             // where should resolvers go?

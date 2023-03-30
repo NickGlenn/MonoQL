@@ -29,8 +29,8 @@ monoql({
             omitOperationSuffix: false,
         },
         {
-            // create supporting types and resolvers for a vanilla GraphQL server
-            server: "types-only",
+            // create supporting types and resolvers for a generic GraphQL server
+            server: "generic",
             // where should resolver type definitions go?
             resolverTypesOutput: "./src/types/resolvers.gen.ts",
             // where should resolvers go?
