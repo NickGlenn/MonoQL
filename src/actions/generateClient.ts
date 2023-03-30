@@ -5,7 +5,7 @@ import * as typescriptOperationsCodegen from "@graphql-codegen/typescript-operat
 import type { TypeScriptPluginConfig } from "@graphql-codegen/typescript";
 import type { TypeScriptDocumentsPluginConfig } from "@graphql-codegen/typescript-operations";
 import glob from "glob";
-import { parse } from "graphql";
+import { Kind, parse } from "graphql";
 import { readFile } from "node:fs/promises";
 import { Project } from "ts-morph";
 import { addTypePathImport, TypePath } from "../internal";
@@ -84,9 +84,18 @@ export function generateClient(config: GenerateClientConfig): PipelineAction {
 
             addTypePathImport(sourceFile, clientPath, "client");
 
-            // add each operation and fragment to the resulting file
-            for (const { document } of _documents) {
-                // TODO:
+            // combine all the operations into a single result so we can walk the AST
+            // for them all at once
+            const operations = _documents.map(({ document }) => document?.definitions ?? []).flat();
+            for (const operation of operations) {
+                if (operation.kind !== Kind.OPERATION_DEFINITION) continue;
+
+                const operationName = operation.name?.value;
+                if (!operationName) {
+                    throw new Error("Operation name is required.");
+                }
+
+                console.log(operationName);
             }
 
             await project.save();

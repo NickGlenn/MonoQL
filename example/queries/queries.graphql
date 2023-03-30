@@ -6,6 +6,6 @@ query getUser($id: ID!) {
   }
 }
 
-mutation createAccount($email: String!, $password: String!) {
+mutation createAccount($email: Email!, $password: String!) {
   created: createAccount(email: $email, password: $password)
 }

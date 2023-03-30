@@ -1,5 +1,6 @@
 # TypeScript source files
 src/
+example/
 tsconfig.json
 
 # Build output

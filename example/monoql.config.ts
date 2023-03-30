@@ -18,7 +18,7 @@ monoql({
             // generate an Apollo client
             client: "apollo",
             // where should we look for the operations?
-            documents: "./src/**/*.graphql",
+            documents: "./queries/**/*.graphql",
             // where is the Apollo client code being created?
             clientPath: "./src/lib/api#client",
             // add custom bindings for using the client with Svelte

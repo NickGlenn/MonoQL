@@ -1,4 +1,5 @@
 import { type ASTNode, type DirectiveNode, type DocumentNode, Kind } from "graphql";
+import { Project } from "ts-morph";
 import { Mutable } from "./internal";
 
 
@@ -144,4 +145,18 @@ export function getDirectives(
     }
 
     return encountered.reverse();
+}
+
+
+
+/**
+ * Attempts to find the given source file in a TS morph project and creates
+ * it if it doesn't exist. Then the file is returned.
+ */
+export function findOrCreateSourceFile(project: Project, filePath: string) {
+    let file = project.getSourceFile(filePath);
+    if (!file) {
+        file = project.createSourceFile(filePath, "", { overwrite: true });
+    }
+    return file;
 }
