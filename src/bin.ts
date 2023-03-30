@@ -12,7 +12,14 @@ import * as yargs from "yargs";
             describe: "Points to the configuration file to use",
             type: "string",
             default: "./monoql.config.ts",
+            alias: "c",
         })
+        // .option("watch", {
+        //     describe: "Watches the configuration file for changes and re-runs the pipeline",
+        //     type: "boolean",
+        //     default: false,
+        //     alias: "w",
+        // })
         .help()
         .alias("help", "h").argv;
 

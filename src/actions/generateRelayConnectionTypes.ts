@@ -1,8 +1,7 @@
 import { ObjectTypeDefinitionNode, NamedTypeNode, FieldDefinitionNode, DocumentNode, visit } from "graphql";
 import { Kind } from "graphql";
-import { PipelineAction } from "../core";
-import { Mutable } from "../types";
-import { ensureActionIsUnique, getDirectives } from "../utils";
+import { Mutable } from "../internal";
+import { PipelineAction } from "../runner";
 
 export interface GenerateRelayConnectionTypesOptions {
     /**
@@ -69,9 +68,6 @@ export function generateRelayConnectionTypes({
 }: GenerateRelayConnectionTypesOptions = {}): PipelineAction {
     return {
         name: "Generate Relay Connection Types",
-        validate(ctx) {
-            ensureActionIsUnique(ctx);
-        },
         execute(ctx) {
             const ast = ctx.ast as Mutable<DocumentNode>;
 

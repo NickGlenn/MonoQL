@@ -1,29 +1,15 @@
 import { DocumentNode, Kind } from "graphql";
-import { PipelineAction } from "../core";
-import { Mutable } from "../types";
-import { ensureActionIsUnique } from "../utils";
-import { baseTypeKinds, extensionToDefinition, mergableFieldsByKind } from "../internal";
+import { PipelineAction } from "../runner";
+import { baseTypeKinds, extensionToDefinition, mergableFieldsByKind, Mutable } from "../internal";
 
-export interface FlattenExtensionTypesOptions {
-    /**
-     * When true (default), the documentation from all extension types will be merged
-     * together if the base type has no documentation.
-     */
-    mergeDocs?: boolean;
-}
 
 /**
  * Flattens extension types into their base types. Throws an error on any duplicate fields
  * of the same name but different types.
  */
-export function flattenExtensionTypes({
-    mergeDocs = true,
-}: FlattenExtensionTypesOptions = {}): PipelineAction {
+export function flattenExtensionTypes(): PipelineAction {
     return {
         name: "Flatten Extension Types",
-        validate(ctx) {
-            ensureActionIsUnique(ctx);
-        },
         execute(ctx) {
             // TODO: add support for merging documentation
 

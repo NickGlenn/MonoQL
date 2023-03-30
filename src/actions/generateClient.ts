@@ -1,45 +1,49 @@
 import { codegen } from "@graphql-codegen/core";
-import { Project } from "ts-morph";
-import { PipelineAction } from "../runner";
-
 import type { Types } from "@graphql-codegen/plugin-helpers";
 import * as typescriptCodegen from "@graphql-codegen/typescript";
 import * as typescriptOperationsCodegen from "@graphql-codegen/typescript-operations";
 import type { TypeScriptPluginConfig } from "@graphql-codegen/typescript";
 import type { TypeScriptDocumentsPluginConfig } from "@graphql-codegen/typescript-operations";
-import type { TypePath } from "../internal";
-import { addTypePathImport } from "../internal";
-import { glob } from "glob";
-import { readFile } from "fs/promises";
+import glob from "glob";
 import { parse } from "graphql";
+import { readFile } from "node:fs/promises";
+import { Project } from "ts-morph";
+import { addTypePathImport, TypePath } from "../internal";
+import { PipelineAction } from "../runner";
 
-export type GenerateApolloClientOperationsOptions = {
-    /** The path to the generated file. */
-    path: string;
-    /** Path to where the Apollo client is created, relative to the location of the `path` file. */
-    apolloClientPath: TypePath;
+export type GenerateClientConfig = {
+    /** Determines what client formula to use. */
+    client: "graphql-request" | "apollo" | "urql";
+    /** Path to where the GraphQL client is created, relative to the location of the `path` file. */
+    clientPath: TypePath;
+    /** Where the generated client code will be saved. */
+    clientOutput: string;
     /** Glob pattern for the GraphQL documents to include. */
     documents: string | string[];
+    /** Specify a frontend framework to generate additional code for. */
+    // TODO: add other frameworks
+    framework?: "svelte";
 }
     & TypeScriptPluginConfig
     & TypeScriptDocumentsPluginConfig;
 
 /**
- * Generates the types, operation types, and typed helper functions for a set of
- * GraphQL query and mutation operations.
+ * Generates client code from a GraphQL schema.
  */
-export function generateApolloClientOperations({
-    path,
-    apolloClientPath,
-    documents,
-    ...config
-}: GenerateApolloClientOperationsOptions): PipelineAction {
+export function generateClient(config: GenerateClientConfig): PipelineAction {
+    const {
+        client,
+        clientPath,
+        clientOutput,
+        documents,
+    } = config;
+
     return {
-        name: "Apollo Client Operations",
+        name: "Generate Client",
         async execute(ctx) {
             const project = new Project();
 
-            const sourceFile = project.createSourceFile(path, undefined, {
+            const sourceFile = project.createSourceFile(clientOutput, undefined, {
                 overwrite: true,
             });
 
@@ -63,7 +67,7 @@ export function generateApolloClientOperations({
 
             const result = await codegen({
                 schema: ctx.ast,
-                filename: path,
+                filename: "",
                 config: {},
                 documents: _documents,
                 plugins: [
@@ -78,7 +82,7 @@ export function generateApolloClientOperations({
 
             sourceFile.addStatements(result);
 
-            addTypePathImport(sourceFile, apolloClientPath, "apolloClient");
+            addTypePathImport(sourceFile, clientPath, "client");
 
             // add each operation and fragment to the resulting file
             for (const { document } of _documents) {

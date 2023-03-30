@@ -1,8 +1,6 @@
 import { DefinitionNode, DocumentNode, Kind } from "graphql";
-import { ensureActionIsUnique } from "../utils";
-import { PipelineAction } from "../core";
-import type { Mutable } from "../types";
-import { extensionToDefinition } from "../internal";
+import { PipelineAction } from "../runner";
+import { extensionToDefinition, Mutable } from "../internal";
 
 
 
@@ -12,9 +10,6 @@ import { extensionToDefinition } from "../internal";
 export function implementMissingBaseDeclarations(): PipelineAction {
     return {
         name: "Implement Missing Base Declarations",
-        validate(ctx) {
-            ensureActionIsUnique(ctx);
-        },
         execute(ctx) {
             const ast = ctx.ast as Mutable<DocumentNode>;
 

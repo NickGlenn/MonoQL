@@ -1,35 +1,15 @@
 import glob from "glob";
 import { DocumentNode, parse } from "graphql";
-import { readFileSync } from "node:fs";
-import { Mutable } from "./types";
+import { readFile } from "node:fs/promises";
 
 /**
- * The configuration for the MonoQL CLI.
+ * Defines a pipeline action that can be executed on a schema.
  */
-export interface MonoQLConfig {
-    /** The path to the schema file(s) to use as input. Supports glob patterns. */
-    schema: string;
-    /** The series of transformers to apply to the schema AST. */
-    pipeline: PipelineAction[];
-}
-
-/**
- * Represents a MonoQL transformer that can be applied to the schema AST.
- */
-export interface PipelineAction<State = void> {
+export interface PipelineAction {
     /** The name of the action. */
     name: string;
-    /**
-     * Allows the action to validate the configuration, check the environment, evaluate
-     * the pipeline for dependencies, and perform any other setup tasks that need to happen
-     * BEFORE the execute function is called.
-     */
-    validate?(ctx: PipelineContext): void | Promise<void>;
-    /**
-     * Allows the action to modify the schema AST, generate files, or perform any other
-     * tasks that need to happen within the pipeline.
-     */
-    execute(ctx: PipelineContext): State | Promise<State>;
+    /** The function to execute. */
+    execute(ctx: PipelineContext): void | Promise<void>;
 }
 
 /**
@@ -44,17 +24,13 @@ export interface PipelineContext {
     readonly action: Readonly<PipelineAction>;
     /** The current state of the schema AST. */
     ast: DocumentNode;
-    // /** Resulting state for each action that has been executed. */
-    // readonly state: Readonly<Record<string, unknown>>;
 }
 
 /**
- * Executes a MonoQL pipeline using the provided configuration.
+ * Internal function that loads a schema and executes a series of transformations
+ * and actions on it. This is used by the `createServer` and `createClient` functions.
  */
-export async function runPipeline({
-    schema: schemaGlob,
-    pipeline,
-}: MonoQLConfig): Promise<void> {
+export async function runPipeline(schemaGlob: string, actions: PipelineAction[]): Promise<void> {
     let ctxName = "Schema Loader";
     let currentAction: PipelineAction;
 
@@ -72,7 +48,7 @@ export async function runPipeline({
         let schema = "";
 
         for (const file of schemaFiles) {
-            schema += readFileSync(file, "utf8") + "\n";
+            schema += await readFile(file, "utf8") + "\n";
         }
 
         if (schema.trim().length === 0) {
@@ -80,35 +56,24 @@ export async function runPipeline({
         }
 
         // parse the schema
-        const ast = parse(schema)
+        const ast = parse(schema);
 
         // create the context object
         const ctx: PipelineContext = {
             schemaFiles,
-            pipelineActions: pipeline,
+            pipelineActions: actions,
             ast,
             get action() {
                 return currentAction;
             },
         };
 
-        for (const action of pipeline) {
+        // execute the pipeline actions
+        for (const action of actions) {
+            if (!action) continue;
+
             currentAction = action;
-
-            if (!action.name) {
-                ctxName = "Invalid Action Configuration";
-                throw new Error(`Pipeline action is missing a name. If you are the author of this action, please add a "name" property to the action. Otherwise, you may need to get in touch with the author of the action.`);
-            }
-
-            if (action.validate) {
-                ctxName = "Validation Error: " + action.name;
-                await action.validate(ctx);
-            }
-        }
-
-        for (const action of pipeline) {
-            currentAction = action;
-            ctxName = "Execution Error: " + action.name;
+            ctxName = action.name;
             await action.execute(ctx);
         }
 
@@ -137,10 +102,6 @@ export async function runPipeline({
     }
 }
 
-
-function blue(str: string) {
-    return `\u001b[34m${str}\u001b[39m`;
-}
 
 function red(str: string) {
     return `\u001b[31m${str}\u001b[39m`;

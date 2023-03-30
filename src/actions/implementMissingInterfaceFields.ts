@@ -1,7 +1,6 @@
 import { DocumentNode, InterfaceTypeDefinitionNode, Kind } from "graphql";
-import { ensureActionIsUnique } from "../utils";
-import { PipelineAction } from "../core";
-import type { Mutable } from "../types";
+import { Mutable } from "../internal";
+import { PipelineAction } from "../runner";
 
 /**
  * Finds all object type definitions that implement an interface and automatically implements
@@ -10,9 +9,6 @@ import type { Mutable } from "../types";
 export function implementMissingInterfaceFields(): PipelineAction {
     return {
         name: "Implement Missing Interface Fields",
-        validate(ctx) {
-            ensureActionIsUnique(ctx);
-        },
         execute(ctx) {
             const ast = ctx.ast as Mutable<DocumentNode>;
             const interfaceMap: Record<string, Mutable<InterfaceTypeDefinitionNode>> = {};

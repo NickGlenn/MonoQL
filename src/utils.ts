@@ -1,6 +1,5 @@
 import { type ASTNode, type DirectiveNode, type DocumentNode, Kind } from "graphql";
-import type { PipelineContext, PipelineAction } from "./core";
-import type { Mutable, TypePath } from "./types";
+import { Mutable } from "./internal";
 
 
 /**
@@ -145,50 +144,4 @@ export function getDirectives(
     }
 
     return encountered.reverse();
-}
-
-
-/**
- * Helper function that ensures a given pipeline action comes BEFORE another action
- * and provides helpful error messages to the user if the action is not in the correct
- * order.
- */
-export function checkForDependencies(ctx: PipelineContext, ...deps: string[]) {
-    const callingAction = ctx.action.name;
-    const index = ctx.pipelineActions.findIndex((a) => a.name === callingAction);
-    for (const dep of deps) {
-        const depIndex = ctx.pipelineActions.findIndex((a) => a.name === dep);
-        if (depIndex === -1) {
-            throw new Error(`Pipeline action "${callingAction}" requires "${dep}", but it is not included in the pipeline. Be sure to add the missing action BEFORE "${callingAction}".`);
-        }
-        if (depIndex > index) {
-            throw new Error(`Pipeline action "${callingAction}" requires "${dep}", but it is included AFTER "${callingAction}". Be sure to add the missing action BEFORE "${callingAction}".`);
-        }
-    }
-}
-
-/**
- * Helper function that ensures the given pipeline action doesn't appear in the pipeline
- * more than once.
- */
-export function ensureActionIsUnique(ctx: PipelineContext) {
-    const callingAction = ctx.action.name;
-    const occurences = ctx.pipelineActions.filter((a) => a.name === callingAction);
-
-    if (occurences.length > 1) {
-        throw new Error(`Pipeline action "${callingAction}" is included more than once in the pipeline. Be sure to remove the extra action.`);
-    }
-}
-
-/**
- * Helper function that ensures that no actions of the given name(s) are included in the
- * pipeline.
- */
-export function ensureActionIsNotIncluded(ctx: PipelineContext, action: string) {
-    const callingAction = ctx.action.name;
-    const foundIncompatible = ctx.pipelineActions.some((a) => a.name === action);
-
-    if (foundIncompatible) {
-        throw new Error(`Pipeline action "${action}" is included in the pipeline and is not compatible with "${callingAction}". Be sure to remove the incompatible action.`);
-    }
 }

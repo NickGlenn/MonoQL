@@ -1,17 +1,11 @@
 import { Project } from "ts-morph";
-import type { PipelineAction } from "../core";
+import type { PipelineAction } from "../runner";
 
 import { codegen } from "@graphql-codegen/core";
 import * as typescriptCodegen from "@graphql-codegen/typescript";
 import * as typescriptResolversCodegen from "@graphql-codegen/typescript-resolvers";
 import type { TypeScriptPluginConfig } from "@graphql-codegen/typescript";
 import type { TypeScriptResolversPluginConfig } from "@graphql-codegen/typescript-resolvers";
-
-
-// TODO: eventually we'll come back to this and replace the the external plugin
-//       with our own implementation that uses the ts-morph library to generate
-//       the typescript types.
-
 
 // const BUILTIN_SCALARS: Record<string, string> = {
 //     String: "string",
@@ -34,7 +28,7 @@ import type { TypeScriptResolversPluginConfig } from "@graphql-codegen/typescrip
 //     defaultScalarType?: TypePath;
 // }
 
-export type CreateResolverTypesOptions = {
+export type GenerateTypescriptResolverTypesOptions = {
     /** Where to output the generated resolver types. */
     path: string;
 }
@@ -51,18 +45,13 @@ export function generateTypescriptResolverTypes({
     // contextType,
     // stripTsDirective = true,
     // defaultScalarType = "string",
-}: CreateResolverTypesOptions): PipelineAction {
+}: GenerateTypescriptResolverTypesOptions): PipelineAction {
 
     // merge the builtin scalars with the user-provided scalars
     // const _customTsTypes: Record<string, TypePath> = { ...BUILTIN_SCALARS, ...mapTypes };
 
     return {
         name: "Generate Typescript Resolver Types",
-        validate(ctx) {
-            if (!path) {
-                throw new Error("Missing required option: path");
-            }
-        },
         async execute(ctx) {
 
             const project = new Project();
