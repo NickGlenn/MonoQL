@@ -69,9 +69,7 @@ export function runCodegen<T extends object>({
             if (modifyTsOutput) {
                 const project = new Project();
                 const sourcefile = project.createSourceFile(outputPath, result, { overwrite: true });
-
                 await modifyTsOutput(sourcefile, ctx);
-
                 await sourcefile.save();
             } else {
                 await writeFile(outputPath, result);

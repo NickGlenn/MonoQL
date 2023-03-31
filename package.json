@@ -22,7 +22,9 @@
     "generative"
   ],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "preversion": "npm run build",
+    "postversion": "git push && git push --tags"
   },
   "dependencies": {
     "@digitak/esrun": "^3.2.21",

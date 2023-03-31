@@ -1,7 +1,5 @@
 ![MonoQL](./logo.png)
 
-> **Note:** This project is still in early development.
-
 MonoQL is library that builds over top [The Guild's GraphQL Code Generation](https://the-guild.dev/graphql/codegen) tool and libraries.
 
 In addition to type generation, it supports in-memory AST transformations, to allow for features like automatic generation of Relay-style connections or schema simplification.
