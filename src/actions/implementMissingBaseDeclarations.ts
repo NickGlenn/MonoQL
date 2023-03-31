@@ -1,7 +1,6 @@
 import { DefinitionNode, DocumentNode, Kind } from "graphql";
-import { PipelineAction } from "../runner";
+import { PipelineAction } from "../index";
 import { extensionToDefinition, Mutable } from "../internal";
-
 
 
 /**

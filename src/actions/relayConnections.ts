@@ -1,7 +1,7 @@
-import { ObjectTypeDefinitionNode, NamedTypeNode, FieldDefinitionNode, DocumentNode, visit } from "graphql";
+import { ObjectTypeDefinitionNode, FieldDefinitionNode, DocumentNode, visit } from "graphql";
 import { Kind } from "graphql";
-import { Mutable } from "../internal";
-import { PipelineAction } from "../runner";
+import type { Mutable } from "../internal";
+import type { PipelineAction } from "../index";
 
 export interface GenerateRelayConnectionTypesOptions {
     /**
@@ -55,7 +55,7 @@ export interface GenerateRelayConnectionTypesOptions {
  * added to the connection field (if missing). By default, the "first" and "after" arguments
  * are added.
  */
-export function generateRelayConnectionTypes({
+export function relayConnections({
     pageArgs = { first: true, after: true },
     addTotalCountToConnectionTypes = false,
     pageInfo = {

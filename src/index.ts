@@ -1,84 +1,123 @@
-import type { DocumentNode } from "graphql";
-import { flattenExtensionTypes } from "./actions/flattenExtensionTypes";
-import { generateClient, GenerateClientConfig } from "./actions/generateClient";
-import { generateRelayConnectionTypes, GenerateRelayConnectionTypesOptions } from "./actions/generateRelayConnectionTypes";
-import { generateServer, GenerateServerConfig } from "./actions/generateServer";
-import { implementMissingBaseDeclarations } from "./actions/implementMissingBaseDeclarations";
-import { implementMissingInterfaceFields } from "./actions/implementMissingInterfaceFields";
-import { runTransformers } from "./actions/runTransformers";
-import { saveSchema } from "./actions/saveSchema";
-import { PipelineAction, runPipeline } from "./runner";
+import glob from "glob";
+import { readFile } from "node:fs/promises";
+import { DocumentNode, parse } from "graphql";
 
-/**
- * Defines a "transformer" function that can be used to modify the AST.
- */
-export type TransformSchemaFn = (ast: DocumentNode) => DocumentNode;
+
+export * from "./actions/saveSchema";
+export * from "./actions/normalizeSchema";
+export * from "./actions/flattenExtensionTypes";
+export * from "./actions/implementMissingBaseDeclarations";
+export * from "./actions/implementMissingInterfaceFields";
+export * from "./actions/runCodegen";
 
 
 export interface MonoQLConfig {
     /** Glob pattern pointing to the schema file(s) to use. */
     schema: string;
-    /** Custom transformation(s) to apply to the schema before generating types. */
-    transformSchema?: TransformSchemaFn | TransformSchemaFn[];
-    /** When true, schema normalization will be skipped. */
-    skipNormalization?: boolean;
-    /** Options to use when generating Relay connection types. */
-    relayConnectionTypes?: false | GenerateRelayConnectionTypesOptions;
-    /** Output generation targets. */
-    generates: GenerateConfig | GenerateConfig[];
+    /** A pipeline of actions to run. */
+    pipeline: PipelineAction[];
 };
 
-interface SchemaOutputConfig {
-    /** Outputs the resulting schema to a file. */
-    schema: string;
+/**
+ * Defines a pipeline action that can be executed on a schema.
+ */
+export interface PipelineAction {
+    /** The name of the action. */
+    name: string;
+    /** The function to execute. */
+    execute(ctx: PipelineContext): void | Promise<void>;
 }
 
-type GenerateConfig =
-    | SchemaOutputConfig
-    | GenerateClientConfig
-    | GenerateServerConfig
-    ;
+/**
+ * The context for a MonoQL pipeline. This is passed to each function found on a pipeline action.
+ */
+export interface PipelineContext {
+    /** The schema files that were found and loaded. */
+    readonly schemaFiles: ReadonlyArray<string>;
+    /** The pipeline actions that were provided in the configuration. */
+    readonly pipelineActions: ReadonlyArray<PipelineAction>;
+    /** The current action being executed. */
+    readonly action: Readonly<PipelineAction>;
+    /** The current state of the schema AST. */
+    ast: DocumentNode;
+}
 
 /**
- * Creates the recommended type definitions for a GraphQL server using Typescript
- * and handles scaffolding of new resolver directories and files.
+ * Loads a schema and executes a series of actions on it or using it.
  */
-export function monoql({
-    schema,
-    transformSchema = [],
-    relayConnectionTypes = {},
-    skipNormalization,
-    generates,
-}: MonoQLConfig) {
-    const actions: PipelineAction[] = [];
+export async function monoql({ schema: schemaGlob, pipeline }: MonoQLConfig): Promise<void> {
+    let ctxName = "Schema Loader";
+    let currentAction: PipelineAction;
 
-    if (!skipNormalization) {
-        actions.push(
-            implementMissingBaseDeclarations(),
-            flattenExtensionTypes(),
-            implementMissingInterfaceFields(),
-        );
-    }
+    try {
 
-    if (relayConnectionTypes !== false) {
-        actions.push(generateRelayConnectionTypes(relayConnectionTypes));
-    }
+        const schemaFiles = glob.sync(schemaGlob, {
+            absolute: true,
+        });
 
-    actions.push(runTransformers(transformSchema));
-
-    const _generates = Array.isArray(generates) ? generates : [generates];
-
-    for (const outputConfig of _generates) {
-        if ("schema" in outputConfig) {
-            actions.push(saveSchema(outputConfig.schema));
+        if (schemaFiles.length === 0) {
+            throw new Error(`No schema files were found using the glob pattern "${schemaGlob}" in directory "${process.cwd()}".`);
         }
-        else if ("client" in outputConfig) {
-            actions.push(generateClient(outputConfig));
-        }
-        else if ("server" in outputConfig) {
-            actions.push(generateServer(outputConfig));
-        }
-    }
 
-    return runPipeline(schema, actions);
+        // load all the schema files and merge them into a single string
+        let schema = "";
+
+        for (const file of schemaFiles) {
+            schema += await readFile(file, "utf8") + "\n";
+        }
+
+        if (schema.trim().length === 0) {
+            throw new Error(`The schema files found using the glob pattern "${schemaGlob}" in directory "${process.cwd()}" were empty.`);
+        }
+
+        // parse the schema
+        const ast = parse(schema);
+
+        // create the context object
+        const ctx: PipelineContext = {
+            schemaFiles,
+            pipelineActions: pipeline,
+            ast,
+            get action() {
+                return currentAction;
+            },
+        };
+
+        // execute the pipeline actions
+        for (const action of pipeline) {
+            if (!action) continue;
+
+            currentAction = action;
+            ctxName = action.name;
+            await action.execute(ctx);
+        }
+
+    } catch (err) {
+        const message = typeof err === "string" ? err : (err as Error).message;
+
+        // create a string of 80 `-` characters
+        console.error(red(("-- " + ctxName + " ") + "-".repeat(76 - ctxName.length)));
+
+        // print the error message, but ensure that each line is only 80 characters and not
+        // split in the middle of a word
+        const words = message.split(" ");
+        let line = "";
+        for (const word of words) {
+            if (line.length + word.length > 80) {
+                console.error(line);
+                line = "";
+            }
+            line += word + " ";
+        }
+        if (line) {
+            console.error(line);
+        }
+
+        process.exit(1);
+    }
+}
+
+
+function red(str: string) {
+    return `\u001b[31m${str}\u001b[39m`;
 }

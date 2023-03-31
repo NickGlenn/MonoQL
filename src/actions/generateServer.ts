@@ -4,7 +4,7 @@ import * as typescriptResolversCodegen from "@graphql-codegen/typescript-resolve
 import type { TypeScriptPluginConfig } from "@graphql-codegen/typescript";
 import type { TypeScriptResolversPluginConfig } from "@graphql-codegen/typescript-resolvers";
 import { Project } from "ts-morph";
-import type { PipelineAction } from "../runner";
+import type { PipelineAction } from "../index";
 
 export type GenerateServerConfig = {
     /** Determines what server formula to use. */
@@ -35,9 +35,13 @@ export function generateServer({
         async execute(ctx) {
             const project = new Project();
 
-            //
             // (re)create the resolver types file
             const resolverTypesFile = project.createSourceFile(resolverTypesOutput, "", { overwrite: true });
+
+            config = {
+                useTypeImports: true,
+                ...config,
+            };
 
             const result = await codegen({
                 schema: ctx.ast,

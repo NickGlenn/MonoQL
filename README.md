@@ -2,27 +2,18 @@
 
 > **Note:** This project is still in early development.
 
-MonoQL is an opinionated generative "framework" for quickly creating type-safe GraphQL servers and clients using Typescript. It's built over top [The Guild's GraphQL Code Generation](https://the-guild.dev/graphql/codegen) and supports in-memory AST transformations (to allow for features like automatic generation of Relay-style connections or schema simplification) and code scaffolding in addition to GraphQL codegen's existing type-generation capabilities.
+MonoQL is library that builds over top [The Guild's GraphQL Code Generation](https://the-guild.dev/graphql/codegen) tool and libraries.
+
+In addition to type generation, it supports in-memory AST transformations, to allow for features like automatic generation of Relay-style connections or schema simplification.
 
 ### Features
 
-- **Fully type-safe** - MonoQL uses Typescript to generate type-safe code for your GraphQL server and client.
-- **Minimal boilerplate** - MonoQL generates all of the boilerplate code for you, including type definitions, resolvers, and client queries/mutations.
-- **Minimal configuration** - MonoQL is designed to work out of the box with minimal configuration. Simply point it at your schema and it will generate the appropriate code for you.
+- **GraphQL Codegen Compatibility** - MonoQL is designed to work with [The Guild's GraphQL Code Generation](https://the-guild.dev/graphql/codegen) eco system. This means that you can use any of the available plugins to generate code for your GraphQL server or client.
 - **Schema normalization** - Performs automatic schema normalization to reduce boilerplate and improve developer experience. Normalization of schema includes:
   - Automatic implementation of missing interface fields for object types.
   - Automatic implementation of missing base definitions for object, interface, enum, union, and input types.
   - Automatic flattening of extension types into base types.
 - **Relay Connection Generation** - Automatically generates Relay-style connections within your schema using the `@connection` directive.
-- **Single install, multiple frameworks** - MonoQL is designed to work with any GraphQL client or server framework. Simply choose the preset that best fits your needs and MonoQL will generate the appropriate code for you.
-
-### Planned Features
-
-> These are not promises, but rather things I'd like to do if time permits.
-
-- Proper documentation (and documentation website).
-- Automatic resolver generation for common use cases (e.g. CRUD operations) so you can generate a fully functional GraphQL server purely from your schema.
-- Tools for generating database objects directly from the GraphQL schema to allow for automatic database integration.
 
 ## Getting Started
 
@@ -42,51 +33,57 @@ Add the following to your `package.json` file:
 }
 ```
 
-Create a `monoql.config.ts` file in the root of your project and call the `monoql` function with your desired configuration. This will generate the appropriate code for your project and can be used to generate a server, client, or both.
+Create a `monoql.config.ts` file in the root of your project and call the `monoql` function with your desired configuration.
 
-Here's an example configuration that generates a server, client, and schema using a handful of the available options:
+Here's an example configuration:
 
 ```ts
-import { monoql } from "monoql";
+import { monoql, normalizeSchema, relayConnections, writeSchema, generateResolvers, runCodegen } from "monoql";
 
 monoql({
     // the path to your GraphQL schema files
     schema: "./schema/**/*.graphqls",
-    // modify the GraphQL schema in-memory before code generation
-    transformSchema(ast) {
-        return ast;
-    },
     // perform code generation
-    // (this can be an object if you have a single desired output)
-    generates: [
-        {
-            // save the resulting schema to a file location
-            schema: "./schema.gen.graphqls",
-        },
-        {
-            // generate an Apollo client
-            client: "apollo",
-            // where should we look for the operations?
-            documents: "./queries/**/*.graphql",
-            // where is the Apollo client code being created?
-            clientPath: "./src/lib/api#client",
-            // add custom bindings for using the client with Svelte
-            framework: "svelte",
-            // where should we save the generated client code?
-            clientOutput: "./src/lib/api.gen.ts",
-            // should the operation type be suffixed to the resulting types and functions?
-            omitOperationSuffix: false,
-        },
-        {
-            // create supporting types and resolvers for a generic GraphQL server
-            server: "generic",
+    pipeline: [
+
+        // normalize the schema by flattening extensions, implementing missing interface fields,
+        // implementing missing base definitions, and so on
+        normalizeSchema(),
+
+        // generate Relay-style connections for all object types that have the @connection directive
+        relayConnections(),
+
+        // save the resulting schema to a file location
+        writeSchema({
+            outputPath: "./schema.gen.graphqls",
+        }),
+
+        // preset for generating server types and resolvers
+        generateResolvers({
             // where should resolver type definitions go?
             resolverTypesOutput: "./src/types/resolvers.gen.ts",
-            // where should resolvers go?
-            resolversOutputDir: "./src/resolvers",
             // what approach should we use for scaffolding out resolvers by default?
             defaultScaffoldMode: "file",
-        },
+            // where should scaffolded resolvers go?
+            resolversOutputDir: "./src/resolvers",
+        }),
+
+        // execute a standard GraphQL Codegen pipeline
+        runCodegen({
+            // where should we save the generated client code?
+            outputPath: "./src/lib/api.gen.ts",
+            // where should we look for the operations?
+            documents: "./queries/**/*.graphql",
+            // plugins to use for code generation
+            plugins: [],
+            // configuration for the plugins
+            config: {},
+            // perform additional code generation to the result using ts-morph
+            modifyTsOutput(sourceFile) {
+                sourceFile.addStatements(`console.log("Hello World!");`);
+            },
+        }),
+
     ],
 });
 ```

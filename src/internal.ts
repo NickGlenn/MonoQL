@@ -1,7 +1,5 @@
 import { Kind } from "graphql";
 import { SourceFile } from "ts-morph";
-import { TransformSchemaFn } from "./index";
-import { PipelineAction } from "./runner";
 
 export const mergableFieldsByKind: Record<string, string[]> = {
     [Kind.OBJECT_TYPE_DEFINITION]: ["fields", "interfaces", "directives"],

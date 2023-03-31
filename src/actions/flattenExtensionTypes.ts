@@ -1,5 +1,5 @@
 import { DocumentNode, Kind } from "graphql";
-import { PipelineAction } from "../runner";
+import { PipelineAction } from "../index";
 import { baseTypeKinds, extensionToDefinition, mergableFieldsByKind, Mutable } from "../internal";
 
 

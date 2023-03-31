@@ -1,6 +1,6 @@
 import { DocumentNode, InterfaceTypeDefinitionNode, Kind } from "graphql";
 import { Mutable } from "../internal";
-import { PipelineAction } from "../runner";
+import { PipelineAction } from "../index";
 
 /**
  * Finds all object type definitions that implement an interface and automatically implements
