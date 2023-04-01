@@ -1,6 +1,6 @@
 {
   "name": "monoql",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A code generation toolkit for GraphQL.",
   "author": "Nick Glenn <nick@catalystsoftworks.com>",
   "license": "MIT",
