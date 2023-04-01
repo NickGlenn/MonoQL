@@ -6,10 +6,7 @@ import type { TypeScriptResolversPluginConfig } from "@graphql-codegen/typescrip
 import { Project } from "ts-morph";
 import type { PipelineAction } from "../index";
 
-export type GenerateServerConfig = {
-    /** Determines what server formula to use. */
-    // TODO: add support for other frameworks
-    server: "generic";
+export type GenerateResolversOptions = {
     /** Output path for the generated resolver types. */
     resolverTypesOutput: string;
     /** Output path for the scaffolded resolvers. If not provided, scaffolding will be skipped. */
@@ -21,22 +18,20 @@ export type GenerateServerConfig = {
     & TypeScriptResolversPluginConfig;
 
 /**
- * Generates server code from a GraphQL schema.
+ * Preset for generating Typescript types and resolver types. Can also scaffold out resolver
+ * methods/files based on the schema and modify existing TypeScript files to add missing
+ * resolver methods.
  */
-export function generateServer({
-    server,
+export function generateResolvers({
     resolverTypesOutput,
     resolversOutputDir,
     defaultScaffoldMode = "file",
     ...config
-}: GenerateServerConfig): PipelineAction {
+}: GenerateResolversOptions): PipelineAction {
     return {
-        name: "Generate Server",
+        name: "Generate Resolvers",
         async execute(ctx) {
             const project = new Project();
-
-            // (re)create the resolver types file
-            const resolverTypesFile = project.createSourceFile(resolverTypesOutput, "", { overwrite: true });
 
             config = {
                 useTypeImports: true,
@@ -57,6 +52,9 @@ export function generateServer({
                     typescriptResolvers: typescriptResolversCodegen,
                 },
             });
+
+            // (re)create the resolver types file
+            const resolverTypesFile = project.createSourceFile(resolverTypesOutput, result, { overwrite: true });
 
             resolverTypesFile.addStatements(result);
 

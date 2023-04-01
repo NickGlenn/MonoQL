@@ -1,56 +1,62 @@
 import { codegen } from "@graphql-codegen/core";
 import type { CodegenPlugin, Types } from "@graphql-codegen/plugin-helpers";
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { Project, SourceFile } from "ts-morph";
 import type { PipelineAction, PipelineContext } from "../index";
-import { glob } from "glob";
-import { parse } from "graphql";
+import { loadDocuments } from "@graphql-tools/load";
+import { CodeFileLoader } from "@graphql-tools/code-file-loader";
+import { GraphQLFileLoader } from "@graphql-tools/graphql-file-loader";
+import { JsonFileLoader } from "@graphql-tools/json-file-loader";
 
-export interface CodegenConfig<T extends object> {
+
+export interface CodegenConfig {
     /** The output path for the generated code. */
     outputPath: string;
     /** Glob pattern to use when searching for documents. */
-    documents: string | string[];
+    documents: string;
     /** List of plugins to use. */
     plugins: CodegenPlugin[];
     /** Configuration to pass to the plugins. */
-    config: T;
+    config: Record<string, any>;
+    /** Skip validation of the documents. */
+    skipDocumentsValidation?: Types.SkipDocumentsValidationOptions;
     /**
      * When present, the generated code will be parsed with TS morph and the
      * resulting file contents will be passed to this function for further processing
      * and modification.
      */
-    modifyTsOutput?(sourceFile: SourceFile, ctx: PipelineContext): void | Promise<void>;
+    modifyTsOutput?(ctx: ModifyTSOutputContext): void | Promise<void>;
+}
+
+export interface ModifyTSOutputContext extends PipelineContext {
+    /** The source file that was generated. */
+    sourceFile: SourceFile;
+    /** The documents that were loaded. */
+    documents: Types.DocumentFile[];
 }
 
 /**
  * Executes code generation using GraphQL Code Generator.
  */
-export function runCodegen<T extends object>({
+export function runCodegen({
     outputPath,
     documents: documentsGlob,
     plugins,
     config,
+    skipDocumentsValidation,
     modifyTsOutput,
-}: CodegenConfig<T>): PipelineAction {
+}: CodegenConfig): PipelineAction {
     return {
         name: "Run Codegen",
         async execute(ctx) {
             // create the documents list from the given glob
-            const documents: Types.DocumentFile[] = [];
-
-            for (const docglob of documentsGlob) {
-                const files = glob.sync(docglob, { absolute: true });
-
-                for (const file of files) {
-                    const contents = await readFile(file, "utf-8");
-                    documents.push({
-                        document: parse(contents),
-                        location: file,
-                        rawSDL: contents,
-                    });
-                }
-            }
+            const documents = await loadDocuments(documentsGlob, {
+                loaders: [
+                    new CodeFileLoader(),
+                    new JsonFileLoader(),
+                    new GraphQLFileLoader(),
+                ],
+            });
 
             const pluginMap: Record<string, CodegenPlugin> = {};
             for (let i = 0; i < plugins.length; i++) {
@@ -64,13 +70,18 @@ export function runCodegen<T extends object>({
                 plugins: plugins.map((p, i) => ({ ["plugin_" + i]: config })),
                 pluginMap,
                 config,
+                skipDocumentsValidation,
             });
 
             if (modifyTsOutput) {
                 const project = new Project();
-                const sourcefile = project.createSourceFile(outputPath, result, { overwrite: true });
-                await modifyTsOutput(sourcefile, ctx);
-                await sourcefile.save();
+                const sourceFile = project.createSourceFile(outputPath, result, { overwrite: true });
+                await modifyTsOutput({
+                    ...ctx,
+                    sourceFile,
+                    documents,
+                });
+                await sourceFile.save();
             } else {
                 await writeFile(outputPath, result);
             }

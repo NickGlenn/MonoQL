@@ -1,19 +1,24 @@
-import glob from "glob";
-import { readFile } from "node:fs/promises";
-import { DocumentNode, parse } from "graphql";
+import { DocumentNode, parse, printSchema, concatAST } from "graphql";
+import { loadSchema } from "@graphql-tools/load";
+import { JsonFileLoader } from "@graphql-tools/json-file-loader";
+import { UrlLoader } from "@graphql-tools/url-loader";
+import { loadFiles } from "@graphql-tools/load-files";
 
-
-export * from "./actions/saveSchema";
+export * from "./actions/writeSchema";
 export * from "./actions/normalizeSchema";
 export * from "./actions/flattenExtensionTypes";
 export * from "./actions/implementMissingBaseDeclarations";
 export * from "./actions/implementMissingInterfaceFields";
+export * from "./actions/relayConnections";
 export * from "./actions/runCodegen";
-
+export * from "./actions/generateResolvers";
+export * from "./actions/generateOperations";
 
 export interface MonoQLConfig {
     /** Glob pattern pointing to the schema file(s) to use. */
     schema: string;
+    /** When true, validation of input schema files will be skipped. */
+    skipSchemaValidation?: boolean;
     /** A pipeline of actions to run. */
     pipeline: PipelineAction[];
 };
@@ -33,49 +38,62 @@ export interface PipelineAction {
  */
 export interface PipelineContext {
     /** The schema files that were found and loaded. */
-    readonly schemaFiles: ReadonlyArray<string>;
+    readonly schemaSources: string | ReadonlyArray<string>;
     /** The pipeline actions that were provided in the configuration. */
     readonly pipelineActions: ReadonlyArray<PipelineAction>;
     /** The current action being executed. */
     readonly action: Readonly<PipelineAction>;
-    /** The current state of the schema AST. */
+    /** The document node representing the schema. */
     ast: DocumentNode;
 }
 
 /**
  * Loads a schema and executes a series of actions on it or using it.
  */
-export async function monoql({ schema: schemaGlob, pipeline }: MonoQLConfig): Promise<void> {
+export async function monoql({
+    schema: schemaSrc,
+    pipeline,
+    skipSchemaValidation,
+}: MonoQLConfig): Promise<void> {
     let ctxName = "Schema Loader";
     let currentAction: PipelineAction;
 
     try {
 
-        const schemaFiles = glob.sync(schemaGlob, {
-            absolute: true,
-        });
+        process.stdout.write(`Loading schema... `);
 
-        if (schemaFiles.length === 0) {
-            throw new Error(`No schema files were found using the glob pattern "${schemaGlob}" in directory "${process.cwd()}".`);
+        // if we're given a filepath, then let's load it using a "raw" loader
+        // and manually stitch the schema together
+
+        let ast: DocumentNode;
+
+        // if we're given a URL or JSON file, then use the GraphQL tools to load it
+        if (typeof schemaSrc === "string" && (schemaSrc.startsWith("http://") || schemaSrc.startsWith("https://") || schemaSrc.endsWith(".json"))) {
+            const schema = await loadSchema(schemaSrc, {
+                assumeValid: skipSchemaValidation,
+                assumeValidSDL: skipSchemaValidation,
+                includeSources: true,
+                loaders: [
+                    new UrlLoader(),
+                    new JsonFileLoader(),
+                ],
+            });
+
+            if (!schema.astNode) {
+                throw new Error("The schema does not have a valid AST node.");
+            }
+
+            ast = parse(printSchema(schema));
+        } else {
+            const files = await loadFiles(schemaSrc, {});
+            ast = concatAST(files);
         }
 
-        // load all the schema files and merge them into a single string
-        let schema = "";
-
-        for (const file of schemaFiles) {
-            schema += await readFile(file, "utf8") + "\n";
-        }
-
-        if (schema.trim().length === 0) {
-            throw new Error(`The schema files found using the glob pattern "${schemaGlob}" in directory "${process.cwd()}" were empty.`);
-        }
-
-        // parse the schema
-        const ast = parse(schema);
+        console.log(blue("OK!"));
 
         // create the context object
         const ctx: PipelineContext = {
-            schemaFiles,
+            schemaSources: schemaSrc,
             pipelineActions: pipeline,
             ast,
             get action() {
@@ -89,30 +107,16 @@ export async function monoql({ schema: schemaGlob, pipeline }: MonoQLConfig): Pr
 
             currentAction = action;
             ctxName = action.name;
+            process.stdout.write(action.name + "... ");
             await action.execute(ctx);
+            console.log(blue("OK!"));
         }
+
+        console.log("Done!");
 
     } catch (err) {
-        const message = typeof err === "string" ? err : (err as Error).message;
-
-        // create a string of 80 `-` characters
-        console.error(red(("-- " + ctxName + " ") + "-".repeat(76 - ctxName.length)));
-
-        // print the error message, but ensure that each line is only 80 characters and not
-        // split in the middle of a word
-        const words = message.split(" ");
-        let line = "";
-        for (const word of words) {
-            if (line.length + word.length > 80) {
-                console.error(line);
-                line = "";
-            }
-            line += word + " ";
-        }
-        if (line) {
-            console.error(line);
-        }
-
+        console.error(red("FAILED!"));
+        console.error(err);
         process.exit(1);
     }
 }
@@ -120,4 +124,8 @@ export async function monoql({ schema: schemaGlob, pipeline }: MonoQLConfig): Pr
 
 function red(str: string) {
     return `\u001b[31m${str}\u001b[39m`;
+}
+
+function blue(str: string) {
+    return `\u001b[34m${str}\u001b[39m`;
 }

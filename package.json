@@ -26,12 +26,22 @@
     "preversion": "npm run build",
     "postversion": "git push && git push --tags"
   },
+  "peerDependency": {
+    "graphql": "^16.6.0"
+  },
   "dependencies": {
     "@digitak/esrun": "^3.2.21",
     "@graphql-codegen/core": "^3.1.0",
     "@graphql-codegen/typescript": "^3.0.2",
     "@graphql-codegen/typescript-operations": "^3.0.2",
     "@graphql-codegen/typescript-resolvers": "^3.1.1",
+    "@graphql-codegen/visitor-plugin-common": "^3.0.2",
+    "@graphql-tools/code-file-loader": "^7.3.21",
+    "@graphql-tools/graphql-file-loader": "^7.5.16",
+    "@graphql-tools/json-file-loader": "^7.4.17",
+    "@graphql-tools/load": "^7.8.13",
+    "@graphql-tools/load-files": "^6.6.1",
+    "@graphql-tools/url-loader": "^7.17.14",
     "glob": "^8.1.0",
     "graphql": "^16.6.0",
     "ts-morph": "^17.0.1",
@@ -40,6 +50,7 @@
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/node": "^18.14.1",
-    "@types/yargs": "^17.0.22"
+    "@types/yargs": "^17.0.22",
+    "typescript": "^5.0.3"
   }
 }
