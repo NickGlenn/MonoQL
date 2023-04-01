@@ -56,7 +56,7 @@ monoql({
             outputPath: "./schema.gen.graphqls",
         }),
 
-        // preset for generating server types and resolvers
+        // preset for generating server types and resolvers for Typescript
         generateResolvers({
             // where should resolver type definitions go?
             resolverTypesOutput: "./src/types/resolvers.gen.ts",
@@ -64,6 +64,25 @@ monoql({
             defaultScaffoldMode: "file",
             // where should scaffolded resolvers go?
             resolversOutputDir: "./src/resolvers",
+        }),
+
+        // preset for generating client types for Typescript
+        generateOperations({
+            // where should we save the generated client code?
+            outputPath: "./src/lib/graphql.gen.ts",
+            // where should we look for the operations and fragments?
+            documents: "./src/**/*.graphql",
+            // should we automatically remove the "Query" and "Mutation" suffixes
+            // from generated operation types if they exist more than once?
+            dedupeOperationSuffix: true,
+            // default type to use for scalars on the client
+            defaultScalarType: "string",
+            // use the "import type" syntax for imports
+            useTypeImports: true,
+            // perform additional code generation to the result using ts-morph
+            modifyTsOutput({ sourceFile, ast, documentsAst }) {
+              sourceFile.addStatements(`console.log("Hello World!");`);
+            },
         }),
 
         // execute a standard GraphQL Codegen pipeline
