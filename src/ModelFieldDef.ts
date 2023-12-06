@@ -45,7 +45,9 @@ export class ModelFieldDef extends FieldDef {
     }
 
     public override getResolverImpl(ctx: BuildCtx, parent: ObjectBaseDef): string {
-        return this.name === "id" ? `doc => doc._id` : "";
+        return this.name !== this.dboName
+            ? `doc => doc.${this.dboName}`
+            : "";
     }
 
 }

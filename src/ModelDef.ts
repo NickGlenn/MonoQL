@@ -110,4 +110,6 @@ export class ModelDef extends ObjectBaseDef implements IBaseType {
 
         super.__prepare(ctx);
     }
+
+    // TODO: create the DBO type and the ODB object + functions
 }

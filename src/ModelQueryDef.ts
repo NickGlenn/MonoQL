@@ -153,19 +153,38 @@ export class ModelQueryFieldDef extends FieldDef {
     }
 
     public override getResolverImpl(ctx: BuildCtx, parent: ObjectBaseDef) {
+        // TODO: this is to be replaced by the aggregate query system, this is
+        //       just placeholder to allow for a working solution
+
         const model = deriveTrueType(this.type) as ModelDef;
         const dbkey = `db`;
+        const isMany = true; // TODO: support one-to-one queries
+
+        // TODO: does the user have a custom resolver for this in their codebase?
+        // TODO: does the user have middleware for this in their codebase?
 
         let out = `async (src, args, context, info) => {\n`;
         out += `const db = context.${dbkey}.collection("${model.collection}");\n`;
-        out += `const query = db.aggregate(_buildQuery(info));\n`;
 
-        if (this.paginated ?? parent.name === "Query") {
-            out += `const [result] = await query.toArray();\n`;
+        if (isMany) {
+
+            // out += `const query = db.aggregate(_buildQuery(info));\n`;
+
+            out += `const query = db.aggregate([\n`;
+
+            out += `]);\n`;
+
+            if (this.paginated ?? parent.name === "Query") {
+                out += `const [result] = await query.toArray();\n`;
+            } else {
+                out += `const result = await query.toArray();\n`;
+            }
+
         } else {
-            out += `const result = await query.toArray();\n`;
+            out += `const result = await db.findOne({\n`;
+            out += `});\n`;
         }
-        // TODO: handle case where the query does not return many
+
 
         out += `return result;\n`;
         out += `}`;
