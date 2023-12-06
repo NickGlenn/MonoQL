@@ -28,3 +28,4 @@ yarn-error.log*
 
 # Misc
 example/generated/
+_scratch/
