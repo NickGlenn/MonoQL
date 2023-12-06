@@ -1,56 +1,74 @@
 {
   "name": "monoql",
-  "version": "1.0.2",
-  "description": "A code generation toolkit for GraphQL.",
-  "author": "Nick Glenn <nick@catalystsoftworks.com>",
-  "license": "MIT",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "typings": "dist/index.d.ts",
-  "type": "commonjs",
-  "bin": {
-    "monoql": "dist/bin.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/nickglenn/monoql.git"
-  },
-  "keywords": [
-    "graphql",
-    "toolchain",
-    "codegen",
-    "generative"
-  ],
+  "version": "2.0.0",
+  "description": "GraphQL and MongoDB backend framework",
   "scripts": {
-    "build": "tsc",
+    "build": "rimraf dist; tsc -p tsconfig.json",
     "preversion": "npm run build",
     "postversion": "git push && git push --tags"
   },
-  "peerDependency": {
-    "graphql": "^16.6.0"
+  "bin": {
+    "monoql": "./bin/cli.js",
+    "create-monoql": "./bin/create.js"
   },
-  "dependencies": {
-    "@digitak/esrun": "^3.2.21",
-    "@graphql-codegen/core": "^3.1.0",
-    "@graphql-codegen/typescript": "^3.0.2",
-    "@graphql-codegen/typescript-operations": "^3.0.2",
-    "@graphql-codegen/typescript-resolvers": "^3.1.1",
-    "@graphql-codegen/visitor-plugin-common": "^3.0.2",
-    "@graphql-tools/code-file-loader": "^7.3.21",
-    "@graphql-tools/graphql-file-loader": "^7.5.16",
-    "@graphql-tools/json-file-loader": "^7.4.17",
-    "@graphql-tools/load": "^7.8.13",
-    "@graphql-tools/load-files": "^6.6.1",
-    "@graphql-tools/url-loader": "^7.17.14",
-    "glob": "^8.1.0",
-    "graphql": "^16.6.0",
-    "ts-morph": "^17.0.1",
-    "yargs": "^17.7.1"
+  "keywords": [
+    "mongo",
+    "backend",
+    "api",
+    "graphql",
+    "codegen"
+  ],
+  "author": "Nick Glenn <nick@catalystsoftworks.com>",
+  "homepage": "https://github.com/catalystsoftworks/monoql#readme",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./adapters/*": "./dist/adapters/*"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "directories": {
+    "bin": "bin",
+    "dist": "dist",
+    "test": "__tests__"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/catalystsoftworks/monoql.git"
+  },
+  "bugs": {
+    "url": "https://github.com/catalystsoftworks/monoql/issues"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
-    "@types/node": "^18.14.1",
-    "@types/yargs": "^17.0.22",
-    "typescript": "^5.0.3"
+    "@types/node": "^20.10.1",
+    "@types/pluralize": "^0.0.33",
+    "@types/yargs": "^17.0.32",
+    "eslint": "^8.54.0",
+    "rimraf": "^5.0.5"
+  },
+  "dependencies": {
+    "@digitak/esrun": "^3.2.25",
+    "@graphql-tools/load-files": "^7.0.0",
+    "case": "^1.6.3",
+    "graphql": "^16.8.1",
+    "mongodb": "^6.3.0",
+    "pluralize": "^8.0.0",
+    "ts-morph": "^20.0.0",
+    "typescript": "^5.3.2",
+    "yargs": "^17.7.2"
+  },
+  "optionalDependencies": {
+    "rollup": "^4.6.1",
+    "vite": "^5.0.4"
   }
 }

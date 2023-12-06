@@ -1,162 +1,116 @@
-import { type ASTNode, type DirectiveNode, type DocumentNode, Kind } from "graphql";
-import { Project } from "ts-morph";
-import { Mutable } from "./internal";
-
-
-/**
- * Custom walker that allows walking over a Mutable AST so that we can modify it. Because this
- * walker anticipates modifications, it actually walks over the AST in reverse order. Additionally,
- * the walker provides a stack of nodes to the callback, so the callback can easily access the
- * ancestors of the current node.
- */
-export function mutableWalker(ast: Mutable<DocumentNode>, cb: (stack: ReadonlyArray<Mutable<ASTNode>>, node: Mutable<ASTNode>) => void) {
-    function _walk(stack: Mutable<ASTNode>[], node: Mutable<ASTNode>) {
-        cb(stack, node);
-        stack = [...stack, node];
-
-        switch (node.kind) {
-            case Kind.DOCUMENT:
-                for (let i = node.definitions.length - 1; i >= 0; i--) {
-                    _walk(stack, node.definitions[i]);
-                }
-                break;
-            case Kind.OPERATION_DEFINITION:
-                if (node.variableDefinitions) {
-                    for (let i = node.variableDefinitions.length - 1; i >= 0; i--) {
-                        _walk(stack, node.variableDefinitions[i]);
-                    }
-                }
-                if (node.selectionSet) {
-                    for (let i = node.selectionSet.selections.length - 1; i >= 0; i--) {
-                        _walk(stack, node.selectionSet.selections[i]);
-                    }
-                }
-                break;
-            case Kind.VARIABLE_DEFINITION:
-                _walk(stack, node.type);
-                break;
-            case Kind.SELECTION_SET:
-                for (let i = node.selections.length - 1; i >= 0; i--) {
-                    _walk(stack, node.selections[i]);
-                }
-                break;
-            case Kind.FIELD:
-                if (node.arguments) {
-                    for (let i = node.arguments.length - 1; i >= 0; i--) {
-                        _walk(stack, node.arguments[i]);
-                    }
-                }
-                if (node.directives) {
-                    for (let i = node.directives.length - 1; i >= 0; i--) {
-                        _walk(stack, node.directives[i]);
-                    }
-                }
-                break;
-            case Kind.ARGUMENT:
-                _walk(stack, node.value);
-                break;
-            case Kind.INLINE_FRAGMENT:
-                if (node.directives) {
-                    for (let i = node.directives.length - 1; i >= 0; i--) {
-                        _walk(stack, node.directives[i]);
-                    }
-                }
-                _walk(stack, node.selectionSet);
-                break;
-            case Kind.FRAGMENT_DEFINITION:
-                if (node.variableDefinitions) {
-                    for (let i = node.variableDefinitions.length - 1; i >= 0; i--) {
-                        _walk(stack, node.variableDefinitions[i]);
-                    }
-                }
-                _walk(stack, node.selectionSet);
-                break;
-            case Kind.LIST_TYPE:
-                _walk(stack, node.type);
-                break;
-            case Kind.NON_NULL_TYPE:
-                _walk(stack, node.type);
-                break;
-            case Kind.DIRECTIVE:
-                if (node.arguments) {
-                    for (let i = node.arguments.length - 1; i >= 0; i--) {
-                        _walk(stack, node.arguments[i]);
-                    }
-                }
-                break;
-            case Kind.OBJECT_FIELD:
-                _walk(stack, node.value);
-                break;
-            default: break;
-        }
-    }
-
-    _walk([], ast);
-}
-
+import { existsSync, statSync } from "fs";
+import { readFile } from "fs/promises";
+import { basename, dirname, join, relative } from "path";
+import type { SourceFile } from "ts-morph";
 
 /**
- * Retrieves each node containing the specified directive, along with the directive's
- * parameters.
+ * Renders a template into the given Typescript source file.
  */
-export function getDirectives(
-    ast: Mutable<DocumentNode>,
-    directive: string,
-    opts: {
-        /** When true, the directive will be removed from the node. */
-        strip?: boolean;
-        /** When provided, delimits what kinds of nodes to search for directives. */
-        kinds?: Kind[];
-    } = {},
+export async function renderTemplate(
+    output: SourceFile,
+    template: string,
+    // data: Record<string, unknown>,
 ) {
-    const { strip, kinds } = opts;
-    const encountered: {
-        /** The node that contains the directive. */
-        node: Mutable<ASTNode>;
-        /** The directive node. */
-        directive: Mutable<DirectiveNode>;
-        /** The stack of ancestors of the node. */
-        ancestors: ReadonlyArray<Mutable<ASTNode>>;
-    }[] = [];
-
-    mutableWalker(ast, (stack, node) => {
-        // we only care about directives
-        if (node.kind !== Kind.DIRECTIVE) return;
-
-        // do we care about this directive?
-        if (node.name.value !== directive) return;
-
-        // get the parent node
-        const parent = stack[stack.length - 1];
-
-        // make sure the parent node is a kind we care about (if provided)
-        if (kinds && !kinds.includes(parent.kind)) return;
-
-        // capture the directive
-        encountered.push({ node: parent, directive: node, ancestors: stack });
-    });
-
-    // if the strip option is true, remove the directives from the AST
-    if (strip) {
-        for (const { node } of encountered) {
-            const directives = (node as { directives: Mutable<DirectiveNode[]> }).directives;
-            directives.filter(d => d.name.value !== directive);
-        }
-    }
-
-    return encountered.reverse();
+    const tpl = await readFile(__dirname + "/../templates/" + template + ".ts", "utf8");
+    // TODO: templating
+    output.addStatements(tpl);
 }
 
-
+/**
+ * Returns true if the given value is an object literal and not null
+ * or an array.
+ */
+export function isObject(value: unknown) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 /**
- * Attempts to find the given source file in a TS morph project and creates
- * it if it doesn't exist. Then the file is returned.
+ * Ensures that the given value is a valid filepath that can be resolved
+ * from the current working directory (or is a valid absolute path).
  */
-export function findOrCreateSourceFile(project: Project, filePath: string) {
-    let file = project.getSourceFile(filePath);
-    if (!file) {
-        file = project.createSourceFile(filePath, "", { overwrite: true });
+export function isFile(filepath: string) {
+    return (
+        typeof filepath === "string" &&
+        filepath !== "" &&
+        existsSync(filepath) &&
+        statSync(filepath).isFile()
+    );
+}
+/** Displays the given text in red. */
+export function red(str: string) {
+    return `\x1b[31m${str}\x1b[0m`;
+}
+
+/* Converts the given value to camel case. */
+export function camelCase(str: string) {
+    return str.replace(/[-_](.)/g, (_, c) => c.toUpperCase());
+}
+
+/* Converts the given value to pascal case. */
+export function pascalCase(str: string) {
+    return camelCase(str).replace(/^[a-z]/, (c) => c.toUpperCase());
+}
+
+/* Converts the given value to snake case. */
+export function snakeCase(str: string) {
+    return str.replace(/([A-Z])/g, (_, c) => `_${c.toLowerCase()}`);
+}
+
+/** Converts the given value to screaming snake case. */
+export function screamingSnakeCase(str: string) {
+    return snakeCase(str).toUpperCase();
+}
+
+/** Helper for formatting a Typescript import path. */
+export function getImportPath(from: string, to: string) {
+    const relativePath = relative(dirname(from), dirname(to));
+    const base = basename(to, ".ts");
+    const result = join(relativePath, base);
+    return result.startsWith(".") ? result : "./" + result;
+}
+
+/** 
+ * Formats JS code as a string similar to JSON.stringify, but supports
+ * JS primitives, functions, and regular expressions.
+ */
+export function jsify(value: unknown): string {
+    switch (typeof value) {
+        case "boolean":
+        case "number":
+        case "bigint":
+        case "string":
+            return JSON.stringify(value);
+        case "function":
+            const fnString = value.toString();
+            return !fnString.startsWith("function") && !fnString.startsWith("(")
+                ? "function " + fnString.slice(fnString.indexOf("("))
+                : fnString;
+        case "object":
+            if (value === null) {
+                return "null";
+            } else if (value instanceof RegExp) {
+                return value.toString();
+            } else if (Array.isArray(value)) {
+                let output = "[\n";
+                for (const item of value) {
+                    output += jsify(item) + ",\n";
+                }
+                return output + "]";
+            } else if ("$raw" in value && typeof value["$raw"] === "string") {
+                return value["$raw"];
+            } else {
+                let output = "{\n";
+                for (const [k, v] of Object.entries(value)) {
+                    // does the key need to be quoted?
+                    const key = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k)
+                        ? k
+                        : JSON.stringify(k);
+
+                    output += `${key}: ${jsify(v)},\n`;
+                }
+                return output + "}";
+            }
+        default:
+            return "undefined";
     }
-    return file;
 }

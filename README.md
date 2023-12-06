@@ -1,106 +1,116 @@
 ![MonoQL](./logo.png)
 
-MonoQL is library that builds over top [The Guild's GraphQL Code Generation](https://the-guild.dev/graphql/codegen) tool and libraries.
+MonoQL is a code-as-configuration, generative framework for creating GraphQL backends over MongoDB. MonoQL aims to reduce the separation and friction that typically exists between your application frontend(s) and the backend by allowing you to define your GraphQL schema and backend code in the same place, effectively exposing your database to your clients.
 
-In addition to type generation, it supports in-memory AST transformations, to allow for features like automatic generation of Relay-style connections or schema simplification.
+> :construction_worker: This project is under heavy development and is currently employing some temporary stop gaps as we continue to build out the core functionality.
 
-### Features
-
-- **GraphQL Codegen Compatibility** - MonoQL is designed to work with [The Guild's GraphQL Code Generation](https://the-guild.dev/graphql/codegen) eco system. This means that you can use any of the available plugins to generate code for your GraphQL server or client.
-- **Schema normalization** - Performs automatic schema normalization to reduce boilerplate and improve developer experience. Normalization of schema includes:
-  - Automatic implementation of missing interface fields for object types.
-  - Automatic implementation of missing base definitions for object, interface, enum, union, and input types.
-  - Automatic flattening of extension types into base types.
-- **Relay Connection Generation** - Automatically generates Relay-style connections within your schema using the `@connection` directive.
+- [x] Automatic generation of queries for models with...
+  - [x] opt-in pagination
+  - [x] sorting
+  - [x] filtering
+- [ ] Translates your GraphQL query requests into MongoDB operations using the aggregation pipeline
+- [ ] Supports MongoDB transactions for mutations
+- [ ] Generates a type-safe ODM for interacting with your models directly
+- [ ] Opt-in audit/revision system for all model types
+- [x] Specify indexes and unique constraints on your models from your schema
+- [ ] Supports multi-tenant relationships
+- [ ] Supports a hook-in authentication system
+- [x] Provides several built-in scalar types
 
 ## Getting Started
 
-Install the monoql command line tool and library:
+> :under_construction: This command is not yet available.
 
-```shell
-npm install -D monoql
+To start the setup wizard to create a new MonoQL project or add MonoQL to an existing project, run the following command:
+
+```
+npm create monoql@latest
 ```
 
-Add the following to your `package.json` file:
+This will walk you through the setup process for creating a new MonoQL project or adding MonoQL to an existing project. Once you've completed the setup wizard, you can use the `monoql` command to generate your MonoQL application code.
 
-```json
-{
-  "scripts": {
-    "monoql": "monoql"
-  }
-}
-```
+## Defining Your Schema
 
-Create a `monoql.config.ts` file in the root of your project and call the `monoql` function with your desired configuration.
+MonoQL uses a `monoql.config.ts` file to define the schema and rules of your application. The first step is to create your `schema` object. This object is used to define your GraphQL schema and the models that make up your application. The value passed to the `createSchema` function is an object that defines the global configuration for your generated application code.
 
-Here's an example configuration:
+At the end of your `monoql.config.ts` file, you must call the `schema.generate()` function to generate your GraphQL schema and application code. This function will return a `Promise` that resolves when the generation process is complete.
+
 
 ```ts
-import { monoql, normalizeSchema, relayConnections, writeSchema, generateResolvers, runCodegen } from "monoql";
+import { createSchema } from "monoql";
 
-monoql({
-    // the path to your GraphQL schema files
-    schema: "./schema/**/*.graphqls",
-    // perform code generation
-    pipeline: [
+const schema = createSchema({
+    outDir: "./src/monoql",
+});
 
-        // normalize the schema by flattening extensions, implementing missing interface fields,
-        // implementing missing base definitions, and so on
-        normalizeSchema(),
+// define your types
 
-        // generate Relay-style connections for all object types that have the @connection directive
-        relayConnections(),
+schema.generate();
+```
 
-        // save the resulting schema to a file location
-        writeSchema({
-            outputPath: "./schema.gen.graphqls",
-        }),
+## Models
 
-        // preset for generating server types and resolvers for Typescript
-        generateResolvers({
-            // where should resolver type definitions go?
-            resolverTypesOutput: "./src/types/resolvers.gen.ts",
-            // what approach should we use for scaffolding out resolvers by default?
-            defaultScaffoldMode: "file",
-            // where should scaffolded resolvers go?
-            resolversOutputDir: "./src/resolvers",
-        }),
+The core of MonoQL is the `model` type. Models map to documents and collections in your MongoDB database. Models accept a variety of configuration properties that allow you to define the schema and rules of your application's data layer.
 
-        // preset for generating client types for Typescript
-        generateOperations({
-            // where should we save the generated client code?
-            outputPath: "./src/lib/graphql.gen.ts",
-            // where should we look for the operations and fragments?
-            documents: "./src/**/*.graphql",
-            // should we automatically remove the "Query" and "Mutation" suffixes
-            // from generated operation types if they exist more than once?
-            dedupeOperationSuffix: true,
-            // default type to use for scalars on the client
-            defaultScalarType: "string",
-            // use the "import type" syntax for imports
-            useTypeImports: true,
-            // perform additional code generation to the result using ts-morph
-            modifyTsOutput({ sourceFile, ast, documentsAst }) {
-              sourceFile.addStatements(`console.log("Hello World!");`);
-            },
-        }),
-
-        // execute a standard GraphQL Codegen pipeline
-        runCodegen({
-            // where should we save the generated client code?
-            outputPath: "./src/lib/api.gen.ts",
-            // where should we look for the operations?
-            documents: "./queries/**/*.graphql",
-            // plugins to use for code generation
-            plugins: [],
-            // configuration for the plugins
-            config: {},
-            // perform additional code generation to the result using ts-morph
-            modifyTsOutput(sourceFile) {
-                sourceFile.addStatements(`console.log("Hello World!");`);
-            },
-        }),
-
-    ],
+```ts
+const User = schema.model({
+    name: "User",
+    docs: "An authenticated entity in the system",
+    fields: {
+        name: {
+            docs: "Display name of the user",
+            type: types.String,
+        },
+        avatarUrl: {
+            docs: "URL of the user's avatar",
+            type: types.URL,
+        },
+        email: {
+            docs: "The user's email address",
+            type: types.Email,
+            unique: true,
+        },
+        password: {
+            docs: "Hashed password of the user",
+            type: types.String,
+            internal: true,
+        },
+    },
 });
 ```
+
+## Interfaces
+
+Interfaces allow you to define a set of rules that can be applied to multiple models. Interfaces can be used to define common fields, relationships, and more. Interfaces can be marked as `abstract` to prevent them from appearing directly in your API, operating more like a "base class" in traditional object-oriented programming.
+
+```ts
+const Timestamps = schema.interface({
+    name: "Timestamps",
+    abstract: true,
+    fields: {
+        createdAt: {
+            docs: "Date/time the object was created",
+            type: types.DateTime,
+            readonly: true,
+            sortable: true,
+            default: { $exec: "new Date()" },
+        },
+        updatedAt: {
+            docs: "Date/time the object was last updated",
+            type: types.DateTime,
+            readonly: true,
+            sortable: true,
+            default: { $exec: "new Date()" },
+            onUpdate: { $exec: "new Date()" },
+        },
+    },
+});
+
+const User = schema.model({
+    name: "User",
+    implements: [Timestamps],
+    // ...
+});
+```
+
+## TODO...

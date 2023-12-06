@@ -1,23 +1,42 @@
 {
     "compilerOptions": {
         "outDir": "dist",
-        "module": "Node16",
-        "moduleResolution": "node16",
         "target": "es2020",
         "lib": [
-            "esnext"
+            "es2020"
         ],
+        "isolatedModules": true,
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        // "moduleDetection": "force",
+        "allowSyntheticDefaultImports": true,
+        "resolveJsonModule": false,
         "declaration": true,
+        "pretty": true,
+        "stripInternal": true,
         "strict": true,
-        "esModuleInterop": true,
+        "noImplicitReturns": true,
+        "noImplicitOverride": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "noEmitOnError": true,
+        "useDefineForClassFields": true,
+        "forceConsistentCasingInFileNames": true,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        // "verbatimModuleSyntax": true,
+    },
+    "ts-node": {
+        "transpileOnly": true,
+        "files": true,
+        "experimentalResolver": true
     },
     "include": [
-        "src/**/*"
+        "src/**/*.ts"
     ],
     "exclude": [
         "node_modules",
-        "dist"
+        "dist/**/*"
     ]
 }

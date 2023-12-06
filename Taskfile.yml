@@ -1,0 +1,16 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task: build
+      - task: run_example
+
+  build:
+    - npm run build
+
+  run_example:
+    dir: example
+    cmds:
+      - npm install ../
+      - npx monoql build

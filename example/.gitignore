@@ -1,2 +1,1 @@
-**/*.ts
-!monoql.config.ts
+src/**/*.gen*
