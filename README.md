@@ -53,30 +53,16 @@ schema.generate();
 The core of MonoQL is the `model` type. Models map to documents and collections in your MongoDB database. Models accept a variety of configuration properties that allow you to define the schema and rules of your application's data layer.
 
 ```ts
-const User = schema.model({
-    name: "User",
-    docs: "An authenticated entity in the system",
-    fields: {
-        name: {
-            docs: "Display name of the user",
-            type: types.String,
-        },
-        avatarUrl: {
-            docs: "URL of the user's avatar",
-            type: types.URL,
-        },
-        email: {
-            docs: "The user's email address",
-            type: types.Email,
-            unique: true,
-        },
-        password: {
-            docs: "Hashed password of the user",
-            type: types.String,
-            internal: true,
-        },
-    },
-});
+const User = schema
+    .model({
+        name: "User",
+        desc: "An authenticated entity in the system",
+    })
+    .implements(Timestamps)
+    .string({ name: "firstName", desc: "First name of the user" })
+    .string({ name: "lastName", desc: "Last name of the user" })
+    .email({ name: "email", desc: "Email address of the user", unique: true, sortable: true })
+    .string({ name: "password", desc: "Password of the user", internal: true })
 ```
 
 ## Interfaces
@@ -84,33 +70,21 @@ const User = schema.model({
 Interfaces allow you to define a set of rules that can be applied to multiple models. Interfaces can be used to define common fields, relationships, and more. Interfaces can be marked as `abstract` to prevent them from appearing directly in your API, operating more like a "base class" in traditional object-oriented programming.
 
 ```ts
-const Timestamps = schema.interface({
-    name: "Timestamps",
-    abstract: true,
-    fields: {
-        createdAt: {
-            docs: "Date/time the object was created",
-            type: types.DateTime,
-            readonly: true,
-            sortable: true,
-            default: { $exec: "new Date()" },
-        },
-        updatedAt: {
-            docs: "Date/time the object was last updated",
-            type: types.DateTime,
-            readonly: true,
-            sortable: true,
-            default: { $exec: "new Date()" },
-            onUpdate: { $exec: "new Date()" },
-        },
-    },
-});
+const Timestamps = schema.interface({ name: "Timestamps", abstract: true })
+    .datetime({
+        name: "createdAt",
+        docs: "Date/time the object was created",
+        readonly: true,
+        sortable: true,
+    })
+    .datetime({
+        name: "updatedAt",
+        docs: "Date/time the object was last updated",
+        readonly: true,
+        sortable: true,
+    })
 
-const User = schema.model({
-    name: "User",
-    implements: [Timestamps],
-    // ...
-});
+User.implements(Timestamps);
 ```
 
 ## TODO...

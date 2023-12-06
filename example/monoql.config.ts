@@ -5,15 +5,29 @@ const schema = createSchema({
 });
 
 const Timestamps = schema.interface({ name: "Timestamps", abstract: true })
-    .datetime({ name: "createdAt", readonly: true, sortable: true })
-    .datetime({ name: "updatedAt", readonly: true, sortable: true })
+    .datetime({
+        name: "createdAt",
+        docs: "Date/time the object was created",
+        readonly: true,
+        sortable: true,
+    })
+    .datetime({
+        name: "updatedAt",
+        docs: "Date/time the object was last updated",
+        readonly: true,
+        sortable: true,
+    })
 
-const User = schema.model({ name: "User" })
+const User = schema
+    .model({
+        name: "User",
+        desc: "An authenticated entity in the system",
+    })
     .implements(Timestamps)
-    .string({ name: "firstName", default: "" })
-    .string({ name: "lastName", default: "" })
-    .email({ name: "email", unique: true, sortable: true })
-    .string({ name: "password", internal: true })
+    .string({ name: "firstName", desc: "First name of the user" })
+    .string({ name: "lastName", desc: "Last name of the user" })
+    .email({ name: "email", desc: "Email address of the user", unique: true, sortable: true })
+    .string({ name: "password", desc: "Password of the user", internal: true })
 // .hasMany({ name: "posts", type: () => Post, foreign: "authorId" })
 
 const PostGenre = schema.enum({ name: "PostGenre", desc: "Determines post genre" })
