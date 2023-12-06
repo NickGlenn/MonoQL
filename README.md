@@ -19,7 +19,7 @@ MonoQL is a code-as-configuration, generative framework for creating GraphQL bac
 
 ## Getting Started
 
-> :under_construction: This command is not yet available.
+> :warning: This command is not yet available.
 
 To start the setup wizard to create a new MonoQL project or add MonoQL to an existing project, run the following command:
 
